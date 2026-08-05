@@ -492,6 +492,77 @@ function Controls.Separator(parentFrame)
 	return { Instance = sep }
 end
 
+function Controls.SelectableList(parentFrame, items, defaultIndex, callback)
+	local container = new("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, #items * Theme.ControlHeight),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Parent = parentFrame,
+	})
+	verticalList(container, 0)
+
+	local rows = {}
+	local selected = defaultIndex or 0
+
+	local function refreshStyles()
+		for i, entry in ipairs(rows) do
+			local active = (i == selected)
+			entry.Text.TextColor3 = active and Theme.Accent or Theme.TextSecondary
+			entry.Highlight.BackgroundTransparency = active and 0.9 or 1
+		end
+	end
+
+	for i, itemText in ipairs(items) do
+		local row_ = new("TextButton", {
+			Text = "",
+			AutoButtonColor = false,
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, 0, 0, Theme.ControlHeight),
+			LayoutOrder = i,
+			Parent = container,
+		})
+
+		local highlight = new("Frame", {
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundColor3 = Theme.Accent,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ZIndex = 1,
+			Parent = row_,
+		})
+
+		local text = label(itemText, {
+			Size = UDim2.new(1, -8, 1, 0),
+			Position = UDim2.new(0, 8, 0, 0),
+			ZIndex = 2,
+			Parent = row_,
+		})
+
+		rows[i] = { Button = row_, Highlight = highlight, Text = text }
+
+		row_.MouseButton1Click:Connect(function()
+			selected = i
+			refreshStyles()
+			if callback then
+				callback(itemText, i)
+			end
+		end)
+	end
+
+	refreshStyles()
+
+	return {
+		Instance = container,
+		Set = function(_, index)
+			selected = index
+			refreshStyles()
+		end,
+		Get = function()
+			return selected, items[selected]
+		end,
+	}
+end
+
 function Controls.Label(parentFrame, text, secondary)
 	local lbl = label(text, {
 		TextColor3 = secondary and Theme.TextSecondary or Theme.TextPrimary,
@@ -543,7 +614,19 @@ function Panel.new(parent, opts)
 	verticalList(content, Theme.ControlSpacing)
 
 	if opts.Title then
-		Controls.Label(content, opts.Title, false)
+		local titleLabel = label(opts.Title, {
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextColor3 = Theme.TextPrimary,
+			LayoutOrder = -2,
+			Parent = content,
+		})
+		local titleRule = new("Frame", {
+			Size = UDim2.new(1, 0, 0, 1),
+			BackgroundColor3 = Theme.BorderSecondary,
+			BorderSizePixel = 0,
+			LayoutOrder = -1,
+			Parent = content,
+		})
 	end
 
 	self._frame = frame
@@ -596,6 +679,12 @@ end
 
 function Panel:AddSeparator()
 	local c = Controls.Separator(self._content)
+	c.Instance.LayoutOrder = nextOrder(self)
+	return c
+end
+
+function Panel:AddList(items, defaultIndex, callback)
+	local c = Controls.SelectableList(self._content, items, defaultIndex, callback)
 	c.Instance.LayoutOrder = nextOrder(self)
 	return c
 end
@@ -742,9 +831,9 @@ function Window.new(opts)
 	})
 	new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
-		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
-		Padding = UDim.new(0, Theme.GroupSpacing),
+		Padding = UDim.new(0, 2),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = topBar,
 	})
@@ -809,6 +898,8 @@ function Window.new(opts)
 
 	self._root = root
 	self._sidebar = sidebar
+	self._body = body
+	self._sidebarWidth = sidebarWidth
 	self._content = content
 	self._topBar = topBar
 	self._navItems = {}
@@ -860,6 +951,82 @@ function Window:SetActiveNav(index)
 	end
 end
 
+function Window:SetSidebarFooter(opts)
+	opts = opts or {}
+
+	if self._sidebarFooter then
+		self._sidebarFooter:Destroy()
+	end
+
+	local footerHeight = opts.Height or 96
+
+	local footer = new("Frame", {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(0, self._sidebarWidth, 0, footerHeight),
+		BackgroundTransparency = 1,
+		Parent = self._body,
+	})
+
+	new("Frame", {
+		Size = UDim2.new(1, 0, 0, 1),
+		BackgroundColor3 = Theme.Border,
+		BorderSizePixel = 0,
+		Parent = footer,
+	})
+
+	local inner = new("Frame", {
+		Position = UDim2.new(0, 0, 0, 1),
+		Size = UDim2.new(1, 0, 1, -1),
+		BackgroundTransparency = 1,
+		Parent = footer,
+	})
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Vertical,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 4),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = inner,
+	})
+
+	if opts.ImageId then
+		new("ImageLabel", {
+			Image = opts.ImageId,
+			Size = UDim2.new(0, 36, 0, 36),
+			BackgroundTransparency = 1,
+			LayoutOrder = 1,
+			Parent = inner,
+		})
+	end
+
+	if opts.Title then
+		label(opts.Title, {
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextColor3 = Theme.TextPrimary,
+			Font = Theme.FontMono,
+			TextSize = Theme.FontSize,
+			Size = UDim2.new(1, 0, 0, Theme.FontSize + 4),
+			LayoutOrder = 2,
+			Parent = inner,
+		})
+	end
+
+	if opts.Subtitle then
+		label(opts.Subtitle, {
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextColor3 = Theme.TextInactive,
+			TextSize = Theme.FontSizeSmall,
+			Size = UDim2.new(1, 0, 0, Theme.FontSizeSmall + 4),
+			LayoutOrder = 3,
+			Parent = inner,
+		})
+	end
+
+	self._sidebarFooter = footer
+	return footer
+end
+
 function Window:AddTab(text)
 	local index = #self._tabs + 1
 	local tabText = text or ("tab " .. index)
@@ -874,28 +1041,24 @@ function Window:AddTab(text)
 		Vector2.new(1000, Theme.TopBarHeight)
 	).X
 
+	local tabPaddingX = 18
+
 	local btn = new("TextButton", {
 		Text = tabText,
 		Font = Theme.Font,
 		TextSize = Theme.FontSizeSmall,
 		TextColor3 = Theme.TextInactive,
+		TextXAlignment = Enum.TextXAlignment.Center,
 		AutoButtonColor = false,
+		BackgroundColor3 = Theme.PanelBackground,
 		BackgroundTransparency = 1,
-		Size = UDim2.new(0, textWidth + 2, 1, 0),
+		BorderSizePixel = 0,
+		Size = UDim2.new(0, textWidth + tabPaddingX * 2, 0, Theme.TopBarHeight - 8),
 		LayoutOrder = index,
 		Parent = self._topBar,
 	})
 
-	local underline = new("Frame", {
-		Position = UDim2.new(0, 0, 1, -2),
-		Size = UDim2.new(1, 0, 0, 2),
-		BackgroundColor3 = Theme.Accent,
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		Parent = btn,
-	})
-
-	self._topTabButtons[index] = { Button = btn, Underline = underline }
+	self._topTabButtons[index] = { Button = btn }
 
 	btn.MouseButton1Click:Connect(function()
 		self:SetActiveTab(index)
@@ -916,7 +1079,7 @@ function Window:SetActiveTab(index)
 	for i, entry in ipairs(self._topTabButtons) do
 		local active = (i == index)
 		entry.Button.TextColor3 = active and Theme.TextPrimary or Theme.TextInactive
-		entry.Underline.BackgroundTransparency = active and 0 or 1
+		entry.Button.BackgroundTransparency = active and 0 or 1
 	end
 end
 
