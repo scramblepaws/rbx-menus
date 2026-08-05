@@ -436,13 +436,20 @@ end
 
 function Window:_build()
 	-- ScreenGui
-	self.ScreenGui = Util.Create("ScreenGui", {
-		Name = "DesktopUI",
-		ResetOnSpawn = false,
-		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-		IgnoreGuiInset = true,
-		Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"),
-	})
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "DesktopUI"
+	gui.ResetOnSpawn = false
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	gui.IgnoreGuiInset = true
+
+	local ok, err = pcall(function()
+		gui.Parent = game:GetService("CoreGui")
+	end)
+	if not ok then
+		gui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+	end
+
+	self.ScreenGui = gui
 
 	-- Main window frame
 	self.MainFrame = Util.Create("Frame", {
