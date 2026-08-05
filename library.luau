@@ -568,8 +568,7 @@ function Window:_registerThemeListener()
 end
 
 function Window:CreateTab(name: string): any
-	local TabClass = require(script.Tab) -- Will be defined later
-	local tab = TabClass:new(self, name)
+	local tab = Tab:new(self, name)
 	table.insert(self._tabs, tab)
 
 	if not self._activeTab then
@@ -580,7 +579,6 @@ function Window:CreateTab(name: string): any
 end
 
 function Window:CreateSidebarCategory(name: string): any
-	local SidebarCategory = require(script.SidebarCategory)
 	local category = SidebarCategory:new(self, name)
 	table.insert(self._sidebarCategories, category)
 
@@ -800,7 +798,6 @@ function Tab:UpdateTheme()
 end
 
 function Tab:CreateGroupbox(title: string, side: string?): any
-	local Groupbox = require(script.Groupbox)
 	side = side or "Left"
 	local groupbox = Groupbox:new(self, title, side)
 	table.insert(self._groupboxes[side], groupbox)
@@ -905,56 +902,47 @@ end
 
 -- Label
 function Groupbox:Label(text: string)
-	local LabelClass = require(script.Controls.Label)
-	return self:AddControl(LabelClass:new(text))
+	return self:AddControl(Label:new(text))
 end
 
 -- Separator
 function Groupbox:Separator(text: string)
-	local SeparatorClass = require(script.Controls.Separator)
-	return self:AddControl(SeparatorClass:new(text))
+	return self:AddControl(Separator:new(text))
 end
 
 -- Button
 function Groupbox:Button(text: string, callback: () -> ())
-	local ButtonClass = require(script.Controls.Button)
-	return self:AddControl(ButtonClass:new(text, callback))
+	return self:AddControl(Button:new(text, callback))
 end
 
 -- Toggle
 function Groupbox:Toggle(text: string, default: boolean?, callback: (boolean) -> ())
-	local ToggleClass = require(script.Controls.Toggle)
-	return self:AddControl(ToggleClass:new(text, default, callback))
+	return self:AddControl(Toggle:new(text, default, callback))
 end
 
 -- Slider
 function Groupbox:Slider(text: string, options: { Min: number, Max: number, Default: number, Decimals: number?, Suffix: string? }, callback: (number) -> ())
-	local SliderClass = require(script.Controls.Slider)
-	return self:AddControl(SliderClass:new(text, options, callback))
+	return self:AddControl(Slider:new(text, options, callback))
 end
 
 -- Textbox
 function Groupbox:Textbox(placeholder: string, default: string?, callback: (string) -> ())
-	local TextboxClass = require(script.Controls.Textbox)
-	return self:AddControl(TextboxClass:new(placeholder, default, callback))
+	return self:AddControl(Textbox:new(placeholder, default, callback))
 end
 
 -- Dropdown
 function Groupbox:Dropdown(text: string, options: { string }, default: string?, callback: (string) -> (), multi: boolean?)
-	local DropdownClass = require(script.Controls.Dropdown)
-	return self:AddControl(DropdownClass:new(text, options, default, callback, multi))
+	return self:AddControl(Dropdown:new(text, options, default, callback, multi))
 end
 
 -- Keybind
 function Groupbox:Keybind(text: string, default: Enum.KeyCode?, callback: (Enum.KeyCode?) -> (), mode: string?)
-	local KeybindClass = require(script.Controls.Keybind)
-	return self:AddControl(KeybindClass:new(text, default, callback, mode))
+	return self:AddControl(Keybind:new(text, default, callback, mode))
 end
 
 -- ColorPicker
 function Groupbox:ColorPicker(text: string, default: Color3?, callback: (Color3) -> ())
-	local ColorPickerClass = require(script.Controls.ColorPicker)
-	return self:AddControl(ColorPickerClass:new(text, default, callback))
+	return self:AddControl(ColorPicker:new(text, default, callback))
 end
 
 -- ============================================================
@@ -1777,3 +1765,232 @@ function Dropdown:UpdateTheme()
 			end
 		end
 end
+
+-- ============================================================
+-- NOTIFICATION SYSTEM
+-- ============================================================
+
+local Notifications = {}
+Notifications.__index = Notifications
+Notifications._queue = {}
+Notifications._container = nil
+
+function Notifications:_ensureContainer()
+	if self._container then return end
+	local screenGui = Util.Create("ScreenGui", {
+		Name = "Notifications",
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		IgnoreGuiInset = true,
+	})
+	self._container = Util.Create("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 240, 1, 0),
+		Position = UDim2.new(1, -250, 0, 10),
+	}, { screenGui })
+end
+
+function Notifications:Show(text: string, duration: number?)
+	duration = duration or 3
+	self:_ensureContainer()
+
+	local notif = Util.Create("Frame", {
+		BackgroundColor3 = Theme.Window,
+		BorderColor3 = Theme.Border,
+		BorderSizePixel = Theme.BorderThickness,
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		LayoutOrder = #self._queue,
+	}, { self._container })
+
+	Renderer.CreateBorder(notif)
+
+	local label = Renderer.CreateLabel(text, Theme.NormalSize, Theme.Text)
+	label.Size = UDim2.new(1, -16, 0, 0)
+	label.AutomaticSize = Enum.AutomaticSize.Y
+	label.TextWrapped = true
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.TextYAlignment = Enum.TextYAlignment.Top
+	label.Position = UDim2.fromOffset(8, 6)
+	label.Parent = notif
+
+	table.insert(self._queue, notif)
+	notif.Size = UDim2.fromOffset(240, 0)
+	notif.AutomaticSize = Enum.AutomaticSize.Y
+
+	task.delay(duration, function()
+		Util.Tween(notif, { BackgroundTransparency = 1 })
+		task.wait(0.12)
+		local idx = table.find(self._queue, notif)
+		if idx then table.remove(self._queue, idx) end
+		notif:Destroy()
+	end)
+end
+
+-- ============================================================
+-- TOOLTIP SYSTEM
+-- ============================================================
+
+local Tooltip = {}
+Tooltip._gui = nil
+Tooltip._label = nil
+Tooltip._frame = nil
+Tooltip._delay = 0.4
+Tooltip._hovered = false
+
+function Tooltip:_ensureGui()
+	if self._gui then return end
+	local screenGui = Util.Create("ScreenGui", {
+		Name = "Tooltip",
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		IgnoreGuiInset = true,
+	})
+	self._gui = screenGui
+	self._frame = Util.Create("Frame", {
+		BackgroundColor3 = Theme.Background,
+		BorderColor3 = Theme.Border,
+		BorderSizePixel = Theme.BorderThickness,
+		Size = UDim2.new(0, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Visible = false,
+		ZIndex = 100,
+	}, { screenGui })
+	Renderer.CreateBorder(self._frame)
+	self._label = Util.Create("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = Theme.Font,
+		TextSize = Theme.SmallSize,
+		TextColor3 = Theme.Text,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Center,
+		TextTruncate = Enum.TextTruncate.None,
+		TextWrapped = true,
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Size = UDim2.new(1, -12, 0, 0),
+		Position = UDim2.fromOffset(6, 4),
+	}, { self._frame })
+end
+
+function Tooltip:Show(text: string, position: Vector2)
+	self:_ensureGui()
+	self._label.Text = text
+	local textSize = Util.GetTextSize(text, Theme.Font, Theme.SmallSize, 200)
+	self._frame.Size = UDim2.fromOffset(textSize.X + 16, textSize.Y + 12)
+	self._frame.Position = UDim2.fromOffset(position.X + 10, position.Y + 10)
+	self._frame.Visible = true
+end
+
+function Tooltip:Hide()
+	if self._frame then
+		self._frame.Visible = false
+	end
+end
+
+function Tooltip:Bind(control, text: string)
+	control.HitArea = control.HitArea or control.Button
+	local target = control.HitArea or control.Frame
+	if not target then return end
+
+	target.MouseEnter:Connect(function()
+		Tooltip._hovered = true
+		task.delay(self._delay, function()
+			if Tooltip._hovered then
+				local mouse = game:GetService("UserInputService"):GetMouseLocation()
+				Tooltip:Show(text, Vector2.new(mouse.X, mouse.Y))
+			end
+		end)
+	end)
+	target.MouseLeave:Connect(function()
+		Tooltip._hovered = false
+		Tooltip:Hide()
+	end)
+end
+
+-- ============================================================
+-- CONFIG SYSTEM
+-- ============================================================
+
+local Config = {}
+Config.__index = Config
+
+function Config.new(name: string)
+	local self = setmetatable({}, Config)
+	self.Name = name or "default"
+	self._callbacks = {}
+	return self
+end
+
+function Config:Save(data: { [string]: any })
+	local success, encoded = pcall(game:GetService("HttpService").JSONEncode, game:GetService("HttpService"), data)
+	if not success then return false end
+	writefile("configs/" .. self.Name .. ".json", encoded)
+	for _, cb in self._callbacks do task.spawn(cb, data) end
+	return true
+end
+
+function Config:Load(): { [string]: any }?
+	local path = "configs/" .. self.Name .. ".json"
+	if not isfile(path) then return nil end
+	local content = readfile(path)
+	local success, data = pcall(game:GetService("HttpService").JSONDecode, game:GetService("HttpService"), content)
+	if not success then return nil end
+	return data
+end
+
+function Config:Delete()
+	local path = "configs/" .. self.Name .. ".json"
+	if isfile(path) then delfile(path) end
+end
+
+function Config:Refresh(): { string }?
+	local files = listfiles("configs") or {}
+	local configs = {}
+	for _, file in files do
+		if file:match("%.json$") then
+			table.insert(configs, file:match("(.+)%.json$"))
+		end
+	end
+	return configs
+end
+
+function Config:OnSave(callback: (data) -> ())
+	table.insert(self._callbacks, callback)
+end
+
+-- ============================================================
+-- LIBRARY WRAPPER
+-- ============================================================
+
+local Library = {
+	Theme = Theme,
+	Util = Util,
+	Renderer = Renderer,
+	Notifications = Notifications,
+	Tooltip = Tooltip,
+	Config = Config,
+	Window = Window,
+	Tab = Tab,
+	Groupbox = Groupbox,
+	Controls = {
+		Label = Label,
+		Separator = Separator,
+		Button = Button,
+		Toggle = Toggle,
+		Slider = Slider,
+		Textbox = Textbox,
+		Dropdown = Dropdown,
+		Keybind = Keybind,
+		ColorPicker = ColorPicker,
+	},
+}
+
+function Library:CreateWindow(options: { Title: string, Size: Vector2?, Position: UDim2? }): any
+	return Window:new(options)
+end
+
+function Library:Notify(text: string, duration: number?)
+	Notifications:Show(text, duration)
+end
+
+return Library
