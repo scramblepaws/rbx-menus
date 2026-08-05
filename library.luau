@@ -238,7 +238,8 @@ function Renderer.CreateBorder(parent: Instance, color: Color3?, thickness: numb
 		Color = color or Theme.Border,
 		Thickness = thickness or Theme.BorderThickness,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-	}, { parent })
+		Parent = parent,
+	})
 end
 
 function Renderer.CreateLabel(text: string, size: number?, color: Color3?, alignment: Enum.TextXAlignment?): TextLabel
@@ -485,7 +486,8 @@ function Window:_build()
 		BorderSizePixel = Theme.BorderThickness,
 		Size = UDim2.new(1, 0, 0, Theme.HeaderHeight),
 		ZIndex = 2,
-	}, { self.MainFrame })
+		Parent = self.MainFrame,
+	})
 
 	self.HeaderLabel = Renderer.CreateLabel(self.Title, Theme.HeaderSize, Theme.Text)
 	self.HeaderLabel.Size = UDim2.new(1, -20, 1, 0)
@@ -502,7 +504,8 @@ function Window:_build()
 		Size = UDim2.fromOffset(Theme.HeaderHeight, Theme.HeaderHeight),
 		Position = UDim2.new(1, -Theme.HeaderHeight, 0, 0),
 		ZIndex = 3,
-	}, { self.Header })
+		Parent = self.Header,
+	})
 
 	self:AddConnection(self.CloseBtn.MouseEnter:Connect(function()
 		Util.Tween(self.CloseBtn, { TextColor3 = Theme.Accent })
@@ -519,7 +522,8 @@ function Window:_build()
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 1, -Theme.HeaderHeight),
 		Position = UDim2.fromOffset(0, Theme.HeaderHeight),
-	}, { self.MainFrame })
+		Parent = self.MainFrame,
+	})
 
 	-- Sidebar
 	self.Sidebar = Util.Create("Frame", {
@@ -528,12 +532,14 @@ function Window:_build()
 		BorderColor3 = Theme.BorderDark,
 		BorderSizePixel = Theme.BorderThickness,
 		Size = UDim2.new(0, Theme.SidebarWidth, 1, 0),
-	}, { self.ContentArea })
+		Parent = self.ContentArea,
+	})
 
 	self.SidebarList = Util.Create("UIListLayout", {
 		Padding = UDim.new(0, 0),
 		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, { self.Sidebar })
+		Parent = self.Sidebar,
+	})
 
 	-- Tab container (right of sidebar)
 	self.TabContainer = Util.Create("Frame", {
@@ -541,7 +547,8 @@ function Window:_build()
 		Size = UDim2.new(1, -Theme.SidebarWidth, 1, 0),
 		Position = UDim2.fromOffset(Theme.SidebarWidth, 0),
 		ClipsDescendants = true,
-	}, { self.ContentArea })
+		Parent = self.ContentArea,
+	})
 
 	-- Tab buttons bar (top of tab container)
 	self.TabBar = Util.Create("Frame", {
@@ -549,20 +556,23 @@ function Window:_build()
 		BorderColor3 = Theme.BorderDark,
 		BorderSizePixel = Theme.BorderThickness,
 		Size = UDim2.new(1, 0, 0, 24),
-	}, { self.TabContainer })
+		Parent = self.TabContainer,
+	})
 
 	self.TabList = Util.Create("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
 		Padding = UDim.new(0, 0),
 		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, { self.TabBar })
+		Parent = self.TabBar,
+	})
 
 	-- Tab content area
 	self.TabContent = Util.Create("Frame", {
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 1, -24),
 		Position = UDim2.fromOffset(0, 24),
-	}, { self.TabContainer })
+		Parent = self.TabContainer,
+	})
 end
 
 function Window:_setupDragging()
@@ -671,7 +681,8 @@ function SidebarCategory:_build()
 		Text = "",
 		Size = UDim2.new(1, 0, 0, 28),
 		LayoutOrder = #self.Window._sidebarCategories,
-	}, { self.Window.Sidebar })
+		Parent = self.Window.Sidebar,
+	})
 
 	self.Indicator = Renderer.CreateAccentIndicator()
 	self.Indicator.Position = UDim2.fromOffset(0, 0)
@@ -753,7 +764,8 @@ function Tab:_build()
 		TextColor3 = Theme.SubText,
 		Size = UDim2.fromOffset(80, 24),
 		LayoutOrder = #self.Window._tabs,
-	}, { self.Window.TabBar })
+		Parent = self.Window.TabBar,
+	})
 
 	self.Underline = Util.Create("Frame", {
 		BackgroundColor3 = Theme.Accent,
@@ -761,38 +773,44 @@ function Tab:_build()
 		Size = UDim2.new(1, 0, 0, 1),
 		Position = UDim2.fromOffset(0, 23),
 		Visible = false,
-	}, { self.Button })
+		Parent = self.Button,
+	})
 
 	-- Content frame (two columns)
 	self.Content = Util.Create("Frame", {
 		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
 		Visible = false,
-	}, { self.Window.TabContent })
+		Parent = self.Window.TabContent,
+	})
 
 	self.LeftColumn = Util.Create("Frame", {
 		BackgroundTransparency = 1,
 		Size = UDim2.new(0.5, -Theme.GroupboxPadding, 1, 0),
 		Position = UDim2.fromOffset(Theme.GroupboxPadding, 0),
-	}, { self.Content })
+		Parent = self.Content,
+	})
 
 	self.RightColumn = Util.Create("Frame", {
 		BackgroundTransparency = 1,
 		Size = UDim2.new(0.5, -Theme.GroupboxPadding, 1, 0),
 		Position = UDim2.new(0.5, Theme.GroupboxPadding / 2, 0, 0),
-	}, { self.Content })
+		Parent = self.Content,
+	})
 
 	self.LeftList = Util.Create("UIListLayout", {
 		Padding = UDim.new(0, Theme.GroupboxPadding),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		VerticalAlignment = Enum.VerticalAlignment.Top,
-	}, { self.LeftColumn })
+		Parent = self.LeftColumn,
+	})
 
 	self.RightList = Util.Create("UIListLayout", {
 		Padding = UDim.new(0, Theme.GroupboxPadding),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		VerticalAlignment = Enum.VerticalAlignment.Top,
-	}, { self.RightColumn })
+		Parent = self.RightColumn,
+	})
 
 	self:AddConnection(self.Button.MouseEnter:Connect(function()
 		if not self._selected then
@@ -884,7 +902,8 @@ function Groupbox:_build()
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		LayoutOrder = #self.Tab._groupboxes[self.Side],
-	}, { column })
+		Parent = column,
+	})
 
 	self.Border = Renderer.CreateBorder(self.Frame)
 
@@ -894,7 +913,8 @@ function Groupbox:_build()
 	self.Layout = Util.Create("UIListLayout", {
 		Padding = UDim.new(0, Theme.ControlSpacing),
 		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, { self.Frame })
+		Parent = self.Frame,
+	})
 
 	-- Title
 	self.TitleLabel = Renderer.CreateLabel(self.Title, Theme.NormalSize, Theme.Accent)
@@ -1195,14 +1215,16 @@ function Toggle:new(text: string, default: boolean?, callback: (boolean) -> ())
 		BorderSizePixel = Theme.BorderThickness,
 		Size = UDim2.fromOffset(Theme.ToggleSize, Theme.ToggleSize),
 		Position = UDim2.fromOffset(0, (height - Theme.ToggleSize) / 2),
-	}, { self.Frame })
+		Parent = self.Frame,
+	})
 
 	self.Fill = Util.Create("Frame", {
 		BackgroundColor3 = Theme.Accent,
 		BorderSizePixel = 0,
 		Size = UDim2.fromScale(1, 1),
 		Visible = self.Value,
-	}, { self.Box })
+		Parent = self.Box,
+	})
 
 	-- Label
 	self.Label = Renderer.CreateLabel(text, Theme.NormalSize, Theme.Text)
@@ -1215,7 +1237,8 @@ function Toggle:new(text: string, default: boolean?, callback: (boolean) -> ())
 		BackgroundTransparency = 1,
 		Text = "",
 		Size = UDim2.fromScale(1, 1),
-	}, { self.Frame })
+		Parent = self.Frame,
+	})
 
 	self:AddConnection(self.HitArea.MouseEnter:Connect(function()
 		self._hovered = true
@@ -1305,13 +1328,15 @@ function Slider:new(text: string, options: { Min: number, Max: number, Default: 
 		BorderSizePixel = Theme.BorderThickness,
 		Size = UDim2.new(1, 0, 0, Theme.SliderTrackHeight),
 		Position = UDim2.fromOffset(0, Theme.NormalSize + 4),
-	}, { self.Frame })
+		Parent = self.Frame,
+	})
 
 	self.Fill = Util.Create("Frame", {
 		BackgroundColor3 = Theme.Accent,
 		BorderSizePixel = 0,
 		Size = UDim2.fromScale(0, 1),
-	}, { self.Track })
+		Parent = self.Track,
+	})
 
 	self.Thumb = Util.Create("Frame", {
 		BackgroundColor3 = Theme.Text,
@@ -1320,14 +1345,16 @@ function Slider:new(text: string, options: { Min: number, Max: number, Default: 
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0, 0.5),
 		ZIndex = 2,
-	}, { self.Track })
+		Parent = self.Track,
+	})
 
 	-- Hit area
 	self.HitArea = Util.Create("TextButton", {
 		BackgroundTransparency = 1,
 		Text = "",
 		Size = UDim2.fromScale(1, 1),
-	}, { self.Track })
+		Parent = self.Track,
+	})
 
 	self:AddConnection(self.HitArea.MouseEnter:Connect(function()
 		self._hovered = true
@@ -1514,7 +1541,8 @@ function Dropdown:_build()
 		TextColor3 = Theme.SubText,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Size = UDim2.new(1, 0, 1, 0),
-	}, { self.Frame })
+		Parent = self.Frame,
+	})
 
 	self.ValueLabel = Util.Create("TextLabel", {
 		BackgroundTransparency = 1,
@@ -1526,7 +1554,8 @@ function Dropdown:_build()
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Size = UDim2.new(1, -30, 1, 0),
 		Position = UDim2.fromOffset(8, 0),
-	}, { self.Button })
+		Parent = self.Button,
+	})
 
 	self.Arrow = Util.Create("TextLabel", {
 		BackgroundTransparency = 1,
@@ -1539,7 +1568,8 @@ function Dropdown:_build()
 		Size = UDim2.fromOffset(30, 0),
 		Position = UDim2.new(1, -30, 0, 0),
 		AnchorPoint = Vector2.new(0, 0.5),
-	}, { self.Button })
+		Parent = self.Button,
+	})
 
 	self:AddConnection(self.Button.MouseButton1Click:Connect(function()
 		self:_toggleList()
@@ -1586,14 +1616,17 @@ function Dropdown:OpenList()
 		ScrollBarImageColor3 = Theme.Border,
 		CanvasSize = UDim2.fromOffset(0, 0),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-	}, { screenGui })
+		Parent = screenGui,
+	})
 
 	local layout = Util.Create("UIListLayout", {
 		Padding = UDim.new(0, 0),
 		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, { self.List })
+		Parent = self.List,
+	})
 
 	self.SearchBox = Util.Create("TextBox", {
+		Name = "SearchBox",
 		BackgroundColor3 = Theme.Background,
 		BorderColor3 = Theme.Border,
 		BorderSizePixel = Theme.BorderThickness,
@@ -1604,14 +1637,16 @@ function Dropdown:OpenList()
 		TextColor3 = Theme.Text,
 		ClearTextOnFocus = false,
 		Size = UDim2.new(1, 0, 0, 20),
-	}, { self.List })
+		Parent = self.List,
+	})
 
 	local searchPadding = Util.Create("UIPadding", {
 		PaddingTop = UDim.new(0, 4),
 		PaddingBottom = UDim.new(0, 4),
 		PaddingLeft = UDim.new(0, 4),
 		PaddingRight = UDim.new(0, 4),
-	}, { self.SearchBox })
+		Parent = self.SearchBox,
+	})
 
 	self:AddConnection(self.SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
 			self:_filterList()
@@ -1644,9 +1679,11 @@ function Dropdown:OpenList()
 				TextColor3 = Theme.Text,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				Size = UDim2.new(1, 0, 0, 24),
-			}, { self.List })
+				Parent = self.List,
+			})
 
 			local optionLabel = Util.Create("TextLabel", {
+				Name = "Label",
 				BackgroundTransparency = 1,
 				Font = Theme.Font,
 				TextSize = Theme.NormalSize,
@@ -1656,23 +1693,27 @@ function Dropdown:OpenList()
 				TextTruncate = Enum.TextTruncate.AtEnd,
 				Size = UDim2.fromOffset(180, 0),
 				Position = UDim2.fromOffset(8, 0),
-			}, { optionBtn })
+				Parent = optionBtn,
+			})
 
 			optionLabel.Text = option
 
 			local selectedIndicator = Util.Create("Frame", {
+				Name = "SelectedIndicator",
 				BackgroundColor3 = Theme.Accent,
 				BorderSizePixel = 0,
 				Size = UDim2.fromOffset(0, 0),
 				Visible = (self.MultiSelect and table.find(self.Value, option)) or (not self.MultiSelect and self.Value == option),
-			}, { optionBtn })
+				Parent = optionBtn,
+			})
 
 			local indicatorPadding = Util.Create("UIPadding", {
 				PaddingTop = UDim.new(0, 4),
 				PaddingBottom = UDim.new(0, 4),
 				PaddingLeft = UDim.new(0, 2),
 				PaddingRight = UDim.new(0, 2),
-			}, { selectedIndicator })
+				Parent = selectedIndicator,
+			})
 
 			local function updateSelectionColor()
 				local isSelected = (self.MultiSelect and table.find(self.Value, option)) or (not self.MultiSelect and self.Value == option)
@@ -1853,7 +1894,8 @@ function Keybind:_build()
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Size = UDim2.fromOffset(80, self.Height),
 		Position = UDim2.new(1, -80, 0, 0),
-	}, { self.Frame })
+		Parent = self.Frame,
+	})
 
 	self.KeyLabel = Util.Create("TextLabel", {
 		BackgroundTransparency = 1,
@@ -1861,7 +1903,8 @@ function Keybind:_build()
 		TextSize = Theme.SmallSize,
 		TextColor3 = Theme.SubText,
 		Size = UDim2.fromScale(1, 1),
-	}, { self.Button })
+		Parent = self.Button,
+	})
 
 	self:_updateKeyLabel()
 
@@ -1974,13 +2017,15 @@ function ColorPicker:_build()
 		BorderSizePixel = Theme.BorderThickness,
 		Size = UDim2.fromOffset(20, 20),
 		Position = UDim2.new(1, -26, 0.5, -10),
-	}, { self.Frame })
+		Parent = self.Frame,
+	})
 
 	self.HitArea = Util.Create("TextButton", {
 		BackgroundTransparency = 1,
 		Text = "",
 		Size = UDim2.fromScale(1, 1),
-	}, { self.Frame })
+		Parent = self.Frame,
+	})
 
 	self:AddConnection(self.HitArea.MouseButton1Click:Connect(function()
 		self:_togglePicker()
@@ -2024,7 +2069,8 @@ function ColorPicker:_openPicker()
 			self.Preview.AbsolutePosition.X,
 			self.Preview.AbsolutePosition.Y + self.Preview.AbsoluteSize.Y + 4
 		),
-	}, { gui })
+		Parent = gui,
+	})
 	self._frame = frame
 
 	Renderer.CreateBorder(frame)
@@ -2035,7 +2081,8 @@ function ColorPicker:_openPicker()
 		BorderSizePixel = 0,
 		Size = UDim2.fromOffset(150, 120),
 		Position = UDim2.fromOffset(8, 8),
-	}, { frame })
+		Parent = frame,
+	})
 
 	-- Hue bar
 	local hueBar = Util.Create("Frame", {
@@ -2044,7 +2091,8 @@ function ColorPicker:_openPicker()
 		BorderSizePixel = Theme.BorderThickness,
 		Size = UDim2.fromOffset(14, 120),
 		Position = UDim2.fromOffset(166, 8),
-	}, { frame })
+		Parent = frame,
+	})
 
 	Util.Create("UIGradient", {
 		Color = ColorSequence.new({
@@ -2056,7 +2104,8 @@ function ColorPicker:_openPicker()
 			ColorSequenceKeypoint.new(0.83, Color3.new(1, 0, 1)),
 			ColorSequenceKeypoint.new(1, Color3.new(1, 0, 0)),
 		}),
-	}, { hueBar })
+		Parent = hueBar,
+	})
 
 	-- Hex label
 	local hexLabel = Util.Create("TextLabel", {
@@ -2068,7 +2117,8 @@ function ColorPicker:_openPicker()
 		Size = UDim2.fromOffset(100, 16),
 		Position = UDim2.fromOffset(8, 136),
 		Text = Util.RGBToHex(self._color),
-	}, { frame })
+		Parent = frame,
+	})
 
 	-- Close on outside click
 	self:AddConnection(game:GetService("UserInputService").InputBegan:Connect(function(input)
@@ -2131,7 +2181,8 @@ function Notifications:_ensureContainer()
 		BackgroundTransparency = 1,
 		Size = UDim2.new(0, 240, 1, 0),
 		Position = UDim2.new(1, -250, 0, 10),
-	}, { screenGui })
+		Parent = screenGui,
+	})
 end
 
 function Notifications:Show(text: string, duration: number?)
@@ -2145,7 +2196,8 @@ function Notifications:Show(text: string, duration: number?)
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		LayoutOrder = #self._queue,
-	}, { self._container })
+		Parent = self._container,
+	})
 
 	Renderer.CreateBorder(notif)
 
@@ -2199,7 +2251,8 @@ function Tooltip:_ensureGui()
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Visible = false,
 		ZIndex = 100,
-	}, { screenGui })
+		Parent = screenGui,
+	})
 	Renderer.CreateBorder(self._frame)
 	self._label = Util.Create("TextLabel", {
 		BackgroundTransparency = 1,
@@ -2213,7 +2266,8 @@ function Tooltip:_ensureGui()
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Size = UDim2.new(1, -12, 0, 0),
 		Position = UDim2.fromOffset(6, 4),
-	}, { self._frame })
+		Parent = self._frame,
+	})
 end
 
 function Tooltip:Show(text: string, position: Vector2)
