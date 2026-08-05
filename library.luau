@@ -66,13 +66,21 @@ local Util = {}
 
 function Util.Create(className: string, properties: { [string]: any }, children: { Instance }?): Instance
 	local instance = Instance.new(className)
+	local parent = nil
 	for prop, value in properties do
-		instance[prop] = value
+		if prop == "Parent" then
+			parent = value
+		else
+			instance[prop] = value
+		end
 	end
 	if children then
 		for _, child in children do
 			child.Parent = instance
 		end
+	end
+	if parent then
+		instance.Parent = parent
 	end
 	return instance
 end
@@ -442,11 +450,18 @@ function Window:_build()
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.IgnoreGuiInset = true
 
+	local targetParent = game:GetService("CoreGui")
 	local ok, err = pcall(function()
-		gui.Parent = game:GetService("CoreGui")
+		gui.Parent = targetParent
 	end)
-	if not ok then
-		gui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+	if not ok or not gui.Parent then
+		warn("[UI] CoreGui failed:", err)
+		local ok2, err2 = pcall(function()
+			gui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+		end)
+		if not ok2 or not gui.Parent then
+			warn("[UI] PlayerGui also failed:", err2)
+		end
 	end
 
 	self.ScreenGui = gui
