@@ -386,6 +386,24 @@ function ControlSignal:Fire(...)
 end
 
 -- ============================================================
+-- FORWARD DECLARATIONS
+-- ============================================================
+
+local Tab
+local SidebarCategory
+local Groupbox
+local Control
+local Label
+local Separator
+local Button
+local Toggle
+local Slider
+local Textbox
+local Dropdown
+local Keybind
+local ColorPicker
+
+-- ============================================================
 -- WINDOW
 -- ============================================================
 
@@ -607,7 +625,7 @@ end
 -- SIDEBAR CATEGORY
 -- ============================================================
 
-local SidebarCategory = {}
+SidebarCategory = {}
 SidebarCategory.__index = SidebarCategory
 setmetatable(SidebarCategory, BaseObject)
 
@@ -683,7 +701,7 @@ end
 -- TAB
 -- ============================================================
 
-local Tab = {}
+Tab = {}
 Tab.__index = Tab
 setmetatable(Tab, BaseObject)
 
@@ -816,7 +834,7 @@ end
 -- GROUPBOX & LAYOUT ENGINE
 -- ============================================================
 
-local Groupbox = {}
+Groupbox = {}
 Groupbox.__index = Groupbox
 setmetatable(Groupbox, BaseObject)
 
@@ -949,7 +967,7 @@ end
 -- BASE CONTROL
 -- ============================================================
 
-local Control = {}
+Control = {}
 Control.__index = Control
 setmetatable(Control, BaseObject)
 
@@ -993,7 +1011,7 @@ end
 -- CONTROLS: LABEL
 -- ============================================================
 
-local Label = {}
+Label = {}
 Label.__index = Label
 setmetatable(Label, Control)
 
@@ -1026,7 +1044,7 @@ end
 -- CONTROLS: SEPARATOR
 -- ============================================================
 
-local Separator = {}
+Separator = {}
 Separator.__index = Separator
 setmetatable(Separator, Control)
 
@@ -1060,7 +1078,7 @@ end
 -- CONTROLS: BUTTON
 -- ============================================================
 
-local Button = {}
+Button = {}
 Button.__index = Button
 setmetatable(Button, Control)
 
@@ -1128,7 +1146,7 @@ end
 -- CONTROLS: TOGGLE
 -- ============================================================
 
-local Toggle = {}
+Toggle = {}
 Toggle.__index = Toggle
 setmetatable(Toggle, Control)
 
@@ -1228,7 +1246,7 @@ end
 -- CONTROLS: SLIDER
 -- ============================================================
 
-local Slider = {}
+Slider = {}
 Slider.__index = Slider
 setmetatable(Slider, Control)
 
@@ -1383,7 +1401,7 @@ end
 -- CONTROLS: TEXTBOX
 -- ============================================================
 
-local Textbox = {}
+Textbox = {}
 Textbox.__index = Textbox
 setmetatable(Textbox, Control)
 
@@ -1437,7 +1455,7 @@ end
 -- CONTROLS: DROPDOWN
 -- ============================================================
 
-local Dropdown = {}
+Dropdown = {}
 Dropdown.__index = Dropdown
 setmetatable(Dropdown, Control)
 
@@ -1764,6 +1782,306 @@ function Dropdown:UpdateTheme()
 				child.Label.TextColor3 = Theme.Text
 			end
 		end
+end
+
+-- ============================================================
+-- CONTROLS: KEYBIND
+-- ============================================================
+
+Keybind = {}
+Keybind.__index = Keybind
+setmetatable(Keybind, Control)
+
+function Keybind:new(text: string, default: Enum.KeyCode?, callback: (Enum.KeyCode?) -> (), mode: string?)
+	local height = Theme.ControlHeight
+	local self = Control:new(height)
+	setmetatable(self, Keybind)
+
+	self.Text = text
+	self.Callback = callback
+	self.Mode = mode or "Toggle"
+	self._hovered = false
+	self._binding = false
+	self._value = default or Enum.KeyCode.Unknown
+	self:_build()
+	return self
+end
+
+function Keybind:_build()
+	self.Frame = Util.Create("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, self.Height),
+	})
+
+	self.Label = Renderer.CreateLabel(self.Text, Theme.NormalSize, Theme.Text)
+	self.Label.Size = UDim2.new(1, -90, 1, 0)
+	self.Label.Parent = self.Frame
+
+	self.Button = Util.Create("TextButton", {
+		BackgroundColor3 = Theme.Background,
+		BorderColor3 = Theme.Border,
+		BorderSizePixel = Theme.BorderThickness,
+		Text = "",
+		Font = Theme.Font,
+		TextSize = Theme.SmallSize,
+		TextColor3 = Theme.SubText,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.fromOffset(80, self.Height),
+		Position = UDim2.new(1, -80, 0, 0),
+	}, { self.Frame })
+
+	self.KeyLabel = Util.Create("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = Theme.Font,
+		TextSize = Theme.SmallSize,
+		TextColor3 = Theme.SubText,
+		Size = UDim2.fromScale(1, 1),
+	}, { self.Button })
+
+	self:_updateKeyLabel()
+
+	self:AddConnection(self.Button.MouseButton1Click:Connect(function()
+		if self._binding then return end
+		self._binding = true
+		self.KeyLabel.Text = "..."
+		self.KeyLabel.TextColor3 = Theme.Accent
+	end))
+
+	self:AddConnection(self.Button.MouseEnter:Connect(function()
+		self._hovered = true
+		self:_updateVisuals()
+	end))
+
+	self:AddConnection(self.Button.MouseLeave:Connect(function()
+		self._hovered = false
+		self:_updateVisuals()
+	end))
+
+	self:AddConnection(game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
+		if gpe then return end
+		if self._binding and input.UserInputType == Enum.UserInputType.Keyboard then
+			self._binding = false
+			if input.KeyCode == Enum.KeyCode.Backspace then
+				self._value = Enum.KeyCode.Unknown
+			else
+				self._value = input.KeyCode
+			end
+			self:_updateKeyLabel()
+			self:_updateVisuals()
+			if self.Callback then
+				task.spawn(self.Callback, self._value)
+			end
+			self:FireChanged(self._value)
+		end
+	end))
+end
+
+function Keybind:_updateKeyLabel()
+	if self._value == Enum.KeyCode.Unknown then
+		self.KeyLabel.Text = "None"
+	else
+		self.KeyLabel.Text = self._value.Name
+	end
+end
+
+function Keybind:_updateVisuals()
+	if self._hovered or self._binding then
+		self.Button.BorderColor3 = Theme.Accent
+	else
+		self.Button.BorderColor3 = Theme.Border
+	end
+end
+
+function Keybind:Set(value: Enum.KeyCode?)
+	self._value = value or Enum.KeyCode.Unknown
+	self:_updateKeyLabel()
+	if self.Callback then
+		task.spawn(self.Callback, self._value)
+	end
+	self:FireChanged(self._value)
+end
+
+function Keybind:Get(): Enum.KeyCode
+	return self._value
+end
+
+function Keybind:UpdateTheme()
+	self.Label.TextColor3 = Theme.Text
+	self.KeyLabel.TextColor3 = Theme.SubText
+	self.Button.BackgroundColor3 = Theme.Background
+	self:_updateVisuals()
+end
+
+-- ============================================================
+-- CONTROLS: COLOR PICKER
+-- ============================================================
+
+ColorPicker = {}
+ColorPicker.__index = ColorPicker
+setmetatable(ColorPicker, Control)
+
+function ColorPicker:new(text: string, default: Color3?, callback: (Color3) -> ())
+	local height = Theme.ControlHeight
+	local self = Control:new(height)
+	setmetatable(self, ColorPicker)
+
+	self.Text = text
+	self.Callback = callback
+	self._color = default or Color3.new(1, 1, 1)
+	self._open = false
+	self:_build()
+	return self
+end
+
+function ColorPicker:_build()
+	self.Frame = Util.Create("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, self.Height),
+	})
+
+	self.Label = Renderer.CreateLabel(self.Text, Theme.NormalSize, Theme.Text)
+	self.Label.Size = UDim2.new(1, -36, 1, 0)
+	self.Label.Parent = self.Frame
+
+	self.Preview = Util.Create("Frame", {
+		BackgroundColor3 = self._color,
+		BorderColor3 = Theme.Border,
+		BorderSizePixel = Theme.BorderThickness,
+		Size = UDim2.fromOffset(20, 20),
+		Position = UDim2.new(1, -26, 0.5, -10),
+	}, { self.Frame })
+
+	self.HitArea = Util.Create("TextButton", {
+		BackgroundTransparency = 1,
+		Text = "",
+		Size = UDim2.fromScale(1, 1),
+	}, { self.Frame })
+
+	self:AddConnection(self.HitArea.MouseButton1Click:Connect(function()
+		self:_togglePicker()
+	end))
+
+	self:AddConnection(self.HitArea.MouseEnter:Connect(function()
+		self._hovered = true
+	end))
+
+	self:AddConnection(self.HitArea.MouseLeave:Connect(function()
+		self._hovered = false
+	end))
+end
+
+function ColorPicker:_togglePicker()
+	self._open = not self._open
+	if self._open then
+		self:_openPicker()
+	else
+		self:_closePicker()
+	end
+end
+
+function ColorPicker:_openPicker()
+	if self._gui then return end
+
+	local gui = Util.Create("ScreenGui", {
+		Name = "ColorPicker",
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Global,
+	}, { game:GetService("CoreGui") })
+	self._gui = gui
+
+	local frame = Util.Create("Frame", {
+		BackgroundColor3 = Theme.Window,
+		BorderColor3 = Theme.Border,
+		BorderSizePixel = Theme.BorderThickness,
+		Size = UDim2.fromOffset(200, 160),
+		Position = UDim2.fromOffset(
+			self.Preview.AbsolutePosition.X,
+			self.Preview.AbsolutePosition.Y + self.Preview.AbsoluteSize.Y + 4
+		),
+	}, { gui })
+	self._frame = frame
+
+	Renderer.CreateBorder(frame)
+
+	-- SV panel
+	local sv = Util.Create("Frame", {
+		BackgroundColor3 = Util.HSVToRGB(Util.RGBToHSV(self._color)),
+		BorderSizePixel = 0,
+		Size = UDim2.fromOffset(150, 120),
+		Position = UDim2.fromOffset(8, 8),
+	}, { frame })
+
+	-- Hue bar
+	local hueBar = Util.Create("Frame", {
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderColor3 = Theme.Border,
+		BorderSizePixel = Theme.BorderThickness,
+		Size = UDim2.fromOffset(14, 120),
+		Position = UDim2.fromOffset(166, 8),
+	}, { frame })
+
+	Util.Create("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.new(1, 0, 0)),
+			ColorSequenceKeypoint.new(0.17, Color3.new(1, 1, 0)),
+			ColorSequenceKeypoint.new(0.33, Color3.new(0, 1, 0)),
+			ColorSequenceKeypoint.new(0.5, Color3.new(0, 1, 1)),
+			ColorSequenceKeypoint.new(0.67, Color3.new(0, 0, 1)),
+			ColorSequenceKeypoint.new(0.83, Color3.new(1, 0, 1)),
+			ColorSequenceKeypoint.new(1, Color3.new(1, 0, 0)),
+		}),
+	}, { hueBar })
+
+	-- Hex label
+	local hexLabel = Util.Create("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = Theme.Font,
+		TextSize = Theme.SmallSize,
+		TextColor3 = Theme.Text,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Size = UDim2.fromOffset(100, 16),
+		Position = UDim2.fromOffset(8, 136),
+		Text = Util.RGBToHex(self._color),
+	}, { frame })
+
+	-- Close on outside click
+	self:AddConnection(game:GetService("UserInputService").InputBegan:Connect(function(input)
+		if self._open and input.UserInputType == Enum.UserInputType.MouseButton1 then
+			local pos = input.Position
+			local fpos = frame.AbsolutePosition
+			local fsize = frame.AbsoluteSize
+			if pos.X < fpos.X or pos.X > fpos.X + fsize.X or pos.Y < fpos.Y or pos.Y > fpos.Y + fsize.Y then
+				self:_closePicker()
+			end
+		end
+	end))
+end
+
+function ColorPicker:_closePicker()
+	if self._gui then
+		self._gui:Destroy()
+		self._gui = nil
+		self._frame = nil
+		self._open = false
+	end
+end
+
+function ColorPicker:Set(value: Color3)
+	self._color = value
+	self.Preview.BackgroundColor3 = value
+	if self.Callback then
+		task.spawn(self.Callback, value)
+	end
+	self:FireChanged(value)
+end
+
+function ColorPicker:Get(): Color3
+	return self._color
+end
+
+function ColorPicker:UpdateTheme()
+	self.Label.TextColor3 = Theme.Text
+	self.Preview.BorderColor3 = Theme.Border
 end
 
 -- ============================================================
