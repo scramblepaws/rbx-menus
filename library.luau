@@ -17,6 +17,7 @@
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local TextService = game:GetService("TextService")
 
 local TacticalUI = {}
 TacticalUI.__index = TacticalUI
@@ -142,6 +143,17 @@ function Controls.Checkbox(parentFrame, text, initial, callback)
 	})
 	applyBorder(box, Theme.Border)
 
+	local check = new("TextLabel", {
+		Text = "✓",
+		Font = Enum.Font.SourceSansBold,
+		TextSize = 12,
+		TextColor3 = Theme.Background,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 1, 0),
+		Visible = initial and true or false,
+		Parent = box,
+	})
+
 	local lbl = label(text, {
 		Position = UDim2.new(0, 24, 0, 0),
 		Size = UDim2.new(1, -24, 1, 0),
@@ -162,6 +174,7 @@ function Controls.Checkbox(parentFrame, text, initial, callback)
 	clickArea.MouseButton1Click:Connect(function()
 		checked = not checked
 		box.BackgroundColor3 = checked and Theme.Accent or Theme.PanelBackground
+		check.Visible = checked
 		if callback then
 			callback(checked)
 		end
@@ -172,6 +185,7 @@ function Controls.Checkbox(parentFrame, text, initial, callback)
 		Set = function(_, value)
 			checked = value
 			box.BackgroundColor3 = checked and Theme.Accent or Theme.PanelBackground
+			check.Visible = checked
 		end,
 		Get = function()
 			return checked
@@ -686,7 +700,8 @@ function Window.new(opts)
 		TextColor3 = Theme.TextPrimary,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		BackgroundTransparency = 1,
-		Size = UDim2.new(0.6, 0, 1, 0),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.new(0, 0, 1, 0),
 		Parent = header,
 	})
 
@@ -697,7 +712,10 @@ function Window.new(opts)
 		TextColor3 = Theme.TextInactive,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		BackgroundTransparency = 1,
-		Size = UDim2.new(0.4, 0, 1, 0),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, 0, 0.5, 0),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.new(0, 0, 1, 0),
 		Parent = header,
 	})
 
@@ -842,12 +860,51 @@ function Window:SetActiveNav(index)
 	end
 end
 
-function Window:AddTab(label_)
+function Window:AddTab(text)
+	local index = #self._tabs + 1
+	local tabText = text or ("tab " .. index)
+
 	local tab = Tab.new(self._content)
 	table.insert(self._tabs, tab)
+
+	local textWidth = TextService:GetTextSize(
+		tabText,
+		Theme.FontSizeSmall,
+		Theme.Font,
+		Vector2.new(1000, Theme.TopBarHeight)
+	).X
+
+	local btn = new("TextButton", {
+		Text = tabText,
+		Font = Theme.Font,
+		TextSize = Theme.FontSizeSmall,
+		TextColor3 = Theme.TextInactive,
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, textWidth + 2, 1, 0),
+		LayoutOrder = index,
+		Parent = self._topBar,
+	})
+
+	local underline = new("Frame", {
+		Position = UDim2.new(0, 0, 1, -2),
+		Size = UDim2.new(1, 0, 0, 2),
+		BackgroundColor3 = Theme.Accent,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Parent = btn,
+	})
+
+	self._topTabButtons[index] = { Button = btn, Underline = underline }
+
+	btn.MouseButton1Click:Connect(function()
+		self:SetActiveTab(index)
+	end)
+
 	if #self._tabs == 1 then
 		self:SetActiveTab(1)
 	end
+
 	return tab
 end
 
@@ -855,6 +912,11 @@ function Window:SetActiveTab(index)
 	self._activeTab = index
 	for i, tab in ipairs(self._tabs) do
 		tab:SetVisible(i == index)
+	end
+	for i, entry in ipairs(self._topTabButtons) do
+		local active = (i == index)
+		entry.Button.TextColor3 = active and Theme.TextPrimary or Theme.TextInactive
+		entry.Underline.BackgroundTransparency = active and 0 or 1
 	end
 end
 
