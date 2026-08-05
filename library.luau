@@ -474,7 +474,8 @@ function Window:_build()
 		Size = UDim2.fromOffset(self.Size.X, self.Size.Y),
 		Position = self.Position,
 		ClipsDescendants = true,
-	}, { self.ScreenGui })
+		Parent = self.ScreenGui,
+	})
 
 	-- Header
 	self.Header = Util.Create("Frame", {
@@ -1570,7 +1571,8 @@ function Dropdown:OpenList()
 		Name = "DropdownList",
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Global,
-	}, { game:GetService("CoreGui") })
+		Parent = game:GetService("CoreGui"),
+	})
 
 	self.ListGui = screenGui
 
@@ -2009,7 +2011,8 @@ function ColorPicker:_openPicker()
 		Name = "ColorPicker",
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Global,
-	}, { game:GetService("CoreGui") })
+		Parent = game:GetService("CoreGui"),
+	})
 	self._gui = gui
 
 	local frame = Util.Create("Frame", {
