@@ -53,7 +53,11 @@ if not Library then
 	clip(table.concat(log, "\n"))
 	return
 end
-out("[2] Library loaded, keys: " .. table.concat(table.keys(Library), ", "))
+out("[2] Library loaded")
+
+local keys = {}
+for k, v in pairs(Library) do table.insert(keys, k) end
+out("[2] Keys: " .. table.concat(keys, ", "))
 
 out("[3] Creating window...")
 local success, Window = pcall(function()
