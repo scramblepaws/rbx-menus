@@ -4,7 +4,7 @@
 	Includes fallback HTTP methods for executor compatibility
 ]]
 
-local LIBRARY_URL = "https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/library.luau"
+local LIBRARY_URL = "https://raw.githubusercontent.com/scramblepaws/rbx-menus/d9d3f9a/library.luau"
 
 local function fetch(url)
 	local content = nil

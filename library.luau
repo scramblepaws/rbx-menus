@@ -9,13 +9,13 @@
 
 local Theme = {
 	Background = Color3.fromRGB(12, 12, 12),
-	Window = Color3.fromRGB(18, 18, 18),
-	Panel = Color3.fromRGB(22, 22, 22),
-	Border = Color3.fromRGB(42, 42, 42),
-	BorderDark = Color3.fromRGB(28, 28, 28),
+	Window = Color3.fromRGB(14, 14, 14),
+	Panel = Color3.fromRGB(18, 18, 18),
+	Border = Color3.fromRGB(32, 32, 32),
+	BorderDark = Color3.fromRGB(24, 24, 24),
 
 	Text = Color3.fromRGB(235, 235, 235),
-	SubText = Color3.fromRGB(145, 145, 145),
+	SubText = Color3.fromRGB(120, 120, 120),
 
 	Accent = Color3.fromRGB(166, 164, 255),
 	Disabled = Color3.fromRGB(80, 80, 80),
@@ -27,7 +27,7 @@ local Theme = {
 	SmallSize = 11,
 
 	-- Layout constants
-	HeaderHeight = 20,
+	HeaderHeight = 22,
 	SidebarWidth = 110,
 	BorderThickness = 1,
 	GroupboxPadding = 8,
@@ -490,9 +490,19 @@ function Window:_build()
 	})
 
 	self.HeaderLabel = Renderer.CreateLabel(self.Title, Theme.HeaderSize, Theme.Text)
-	self.HeaderLabel.Size = UDim2.new(1, -20, 1, 0)
+	self.HeaderLabel.Size = UDim2.new(1, -130, 1, 0)
 	self.HeaderLabel.Position = UDim2.fromOffset(10, 0)
 	self.HeaderLabel.Parent = self.Header
+
+	-- Date label on right
+	local months = {"january","february","march","april","may","june","july","august","september","october","november","december"}
+	local days = {"sunday","monday","tuesday","wednesday","thursday","friday","saturday"}
+	local now = os.date("*t")
+	local dateStr = string.format("%s, %d %s %d", days[now.wday], now.day, months[now.month], now.year)
+	self.DateLabel = Renderer.CreateLabel(dateStr, Theme.SmallSize, Theme.SubText, Enum.TextXAlignment.Right)
+	self.DateLabel.Size = UDim2.new(0, 120, 1, 0)
+	self.DateLabel.Position = UDim2.new(1, -140, 0, 0)
+	self.DateLabel.Parent = self.Header
 
 	-- Close button
 	self.CloseBtn = Util.Create("TextButton", {
@@ -569,8 +579,8 @@ function Window:_build()
 	-- Tab content area
 	self.TabContent = Util.Create("Frame", {
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 1, -24),
-		Position = UDim2.fromOffset(0, 24),
+		Size = UDim2.new(1, -16, 1, -32),
+		Position = UDim2.fromOffset(8, 28),
 		Parent = self.TabContainer,
 	})
 end
@@ -762,7 +772,7 @@ function Tab:_build()
 		Font = Theme.Font,
 		TextSize = Theme.NormalSize,
 		TextColor3 = Theme.SubText,
-		Size = UDim2.fromOffset(80, 24),
+		Size = UDim2.fromOffset(100, 24),
 		LayoutOrder = #self.Window._tabs,
 		Parent = self.Window.TabBar,
 	})
@@ -917,7 +927,7 @@ function Groupbox:_build()
 	})
 
 	-- Title
-	self.TitleLabel = Renderer.CreateLabel(self.Title, Theme.NormalSize, Theme.Accent)
+	self.TitleLabel = Renderer.CreateLabel(self.Title, Theme.NormalSize, Theme.SubText, Enum.TextXAlignment.Center)
 	self.TitleLabel.Size = UDim2.new(1, 0, 0, Theme.NormalSize + 2)
 	self.TitleLabel.LayoutOrder = 0
 	self.TitleLabel.Parent = self.Frame
