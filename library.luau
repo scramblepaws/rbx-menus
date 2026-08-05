@@ -441,6 +441,7 @@ function Window:_build()
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		IgnoreGuiInset = true,
+		Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"),
 	})
 
 	-- Main window frame
