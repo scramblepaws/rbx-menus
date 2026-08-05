@@ -18,11 +18,10 @@ local Visuals = Window:CreateSidebarCategory("visuals")
 local Misc = Window:CreateSidebarCategory("misc")
 local Config = Window:CreateSidebarCategory("config")
 
--- Get active tab and create tabs for aimbot
-local activeTab = Window:GetActiveTab()
-local Legitbot = activeTab:CreateTab("legitbot")
-local Triggerbot = activeTab:CreateTab("triggerbot")
-local Other = activeTab:CreateTab("other")
+-- Tabs
+local Legitbot = Window:CreateTab("legitbot")
+local Triggerbot = Window:CreateTab("triggerbot")
+local Other = Window:CreateTab("other")
 
 -- ============================================================
 -- LEGITBOT TAB
@@ -83,8 +82,10 @@ end)
 
 local saveBtn = MainGroupbox:Button("save", function()
 	warn("Config saved!")
-	Library:Notice("Config saved successfully!", 2)
+	Library:Notify("Config saved successfully!", 2)
 end)
+
+MainGroupbox:Separator("just a text!")
 
 -- Right Column - Accuracy / Config slots
 local AccuracyGroupbox = Legitbot:CreateGroupbox("accuracy", "Right")
@@ -130,29 +131,12 @@ OtherRight:Toggle("prediction", true)
 OtherRight:Slider("prediction factor", { Min = 0, Max = 1, Default = 0.165, Decimals = 3 })
 
 -- ============================================================
--- VISUALS TAB (placeholder)
--- ============================================================
-
-local VisualsTab = Window:GetActiveTab()
--- Note: The sidebar categories switch tabs, but for this example
--- we create content in the default tab
-
--- ============================================================
--- FOOTER TEXT
--- ============================================================
-
--- Add a label at the bottom of the main groupbox
-MainGroupbox:Separator("just a text!")
-
--- ============================================================
 -- TOOLTIPS
 -- ============================================================
 
--- Bind tooltips to controls
 Library.Tooltip:Bind(enabledToggle, "Toggle aimbot on/off")
 Library.Tooltip:Bind(recoilToggle, "Remove weapon recoil")
 Library.Tooltip:Bind(spreadToggle, "Remove weapon spread")
 Library.Tooltip:Bind(saveBtn, "Save current configuration")
 
 print("=== Amnesia UI Loaded ===")
-print("All controls initialized successfully")
