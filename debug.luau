@@ -3,7 +3,7 @@
 	Copies full debug output to clipboard
 ]]
 
-local LIBRARY_URL = "https://raw.githubusercontent.com/scramblepaws/rbx-menus/717d4bf/library.luau"
+local LIBRARY_URL = "https://raw.githubusercontent.com/scramblepaws/rbx-menus/3cb9b6f/library.luau"
 
 local function fetch(url)
 	local content = nil
