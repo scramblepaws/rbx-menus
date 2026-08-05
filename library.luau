@@ -28,7 +28,7 @@ local Theme = {
 
 	-- Layout constants
 	HeaderHeight = 22,
-	SidebarWidth = 110,
+	SidebarWidth = 120,
 	BorderThickness = 1,
 	GroupboxPadding = 8,
 	ControlSpacing = 6,
@@ -551,6 +551,39 @@ function Window:_build()
 		Parent = self.Sidebar,
 	})
 
+	-- Sidebar logo area (bottom)
+	self.SidebarLogo = Util.Create("Frame", {
+		Name = "Logo",
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 90),
+		LayoutOrder = 9999,
+		Parent = self.Sidebar,
+	})
+
+	self.SidebarLogoIcon = Util.Create("TextLabel", {
+		Name = "Icon",
+		BackgroundTransparency = 1,
+		Text = "☽",
+		Font = Enum.Font.Code,
+		TextSize = 36,
+		TextColor3 = Theme.Accent,
+		Size = UDim2.new(1, 0, 0, 50),
+		Position = UDim2.fromOffset(0, 8),
+		Parent = self.SidebarLogo,
+	})
+
+	self.SidebarLogoText = Util.Create("TextLabel", {
+		Name = "Text",
+		BackgroundTransparency = 1,
+		Text = "amnesia",
+		Font = Enum.Font.Code,
+		TextSize = Theme.SmallSize,
+		TextColor3 = Theme.SubText,
+		Size = UDim2.new(1, 0, 0, 16),
+		Position = UDim2.fromOffset(0, 56),
+		Parent = self.SidebarLogo,
+	})
+
 	-- Tab container (right of sidebar)
 	self.TabContainer = Util.Create("Frame", {
 		BackgroundTransparency = 1,
@@ -689,13 +722,25 @@ function SidebarCategory:_build()
 	self.Button = Util.Create("TextButton", {
 		BackgroundTransparency = 1,
 		Text = "",
-		Size = UDim2.new(1, 0, 0, 28),
+		Size = UDim2.new(1, -8, 0, 28),
+		Position = UDim2.fromOffset(4, 0),
 		LayoutOrder = #self.Window._sidebarCategories,
 		Parent = self.Window.Sidebar,
 	})
 
+	self.ButtonBorder = Util.Create("Frame", {
+		Name = "Border",
+		BackgroundColor3 = Theme.Border,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 1, 0),
+		Visible = false,
+		Parent = self.Button,
+	})
+	Renderer.CreateBorder(self.ButtonBorder, Theme.Border)
+
 	self.Indicator = Renderer.CreateAccentIndicator()
-	self.Indicator.Position = UDim2.fromOffset(0, 0)
+	self.Indicator.Size = UDim2.new(0, 2, 0.6, 0)
+	self.Indicator.Position = UDim2.fromOffset(0, 0.2)
 	self.Indicator.Parent = self.Button
 
 	self.Label = Renderer.CreateLabel(self.Name, Theme.NormalSize, Theme.SubText)
@@ -725,6 +770,7 @@ function SidebarCategory:Select()
 		self.Window._activeCategory:Deselect()
 	end
 	self._selected = true
+	self.ButtonBorder.Visible = true
 	self.Indicator.Visible = true
 	self.Label.TextColor3 = Theme.Text
 	self.Label.Font = Enum.Font.Code -- Already default
@@ -733,6 +779,7 @@ end
 
 function SidebarCategory:Deselect()
 	self._selected = false
+	self.ButtonBorder.Visible = false
 	self.Indicator.Visible = false
 	self.Label.TextColor3 = Theme.SubText
 end
@@ -780,8 +827,8 @@ function Tab:_build()
 	self.Underline = Util.Create("Frame", {
 		BackgroundColor3 = Theme.Accent,
 		BorderSizePixel = 0,
-		Size = UDim2.new(1, 0, 0, 1),
-		Position = UDim2.fromOffset(0, 23),
+		Size = UDim2.new(1, 0, 0, 2),
+		Position = UDim2.new(0, 0, 1, -2),
 		Visible = false,
 		Parent = self.Button,
 	})
@@ -1312,6 +1359,7 @@ function Slider:new(text: string, options: { Min: number, Max: number, Default: 
 	local self = Control:new(height)
 	setmetatable(self, Slider)
 
+	self.Text = text
 	self.Min = options.Min or 0
 	self.Max = options.Max or 100
 	self.Decimals = options.Decimals or 0
@@ -1326,10 +1374,17 @@ function Slider:new(text: string, options: { Min: number, Max: number, Default: 
 		Size = UDim2.new(1, 0, 0, height),
 	})
 
-	-- Label + value
-	self.Label = Renderer.CreateLabel("", Theme.NormalSize, Theme.Text)
-	self.Label.Size = UDim2.new(1, 0, 0, Theme.NormalSize)
+	-- Label on left
+	self.Label = Renderer.CreateLabel(self.Text, Theme.NormalSize, Theme.Text)
+	self.Label.Size = UDim2.new(0.5, -4, 0, Theme.NormalSize)
+	self.Label.Position = UDim2.fromOffset(0, 0)
 	self.Label.Parent = self.Frame
+
+	-- Value display on right
+	self.ValueLabel = Renderer.CreateLabel(tostring(self.Value), Theme.NormalSize, Theme.Text, Enum.TextXAlignment.Right)
+	self.ValueLabel.Size = UDim2.new(0.5, -4, 0, Theme.NormalSize)
+	self.ValueLabel.Position = UDim2.new(0.5, 4, 0, 0)
+	self.ValueLabel.Parent = self.Frame
 
 	-- Track
 	self.Track = Util.Create("Frame", {
@@ -1413,7 +1468,8 @@ end
 
 function Slider:_updateLabel()
 	local displayValue = self.Suffix ~= "" and (tostring(self.Value) .. " " .. self.Suffix) or tostring(self.Value)
-	self.Label.Text = string.format("%s  [%s]", self.Text or "Slider", displayValue)
+	self.Label.Text = self.Text or "Slider"
+	self.ValueLabel.Text = displayValue
 end
 
 function Slider:_updateFill()
@@ -1451,6 +1507,7 @@ end
 
 function Slider:UpdateTheme()
 	self.Label.TextColor3 = Theme.Text
+	self.ValueLabel.TextColor3 = Theme.Text
 	self.Track.BackgroundColor3 = Theme.Background
 	self.Track.BorderColor3 = self._hovered and Theme.Accent or Theme.Border
 	self.Fill.BackgroundColor3 = Theme.Accent
