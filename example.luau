@@ -1,142 +1,208 @@
 --[[
-	Amnesia - Example Script
-	Matching the Figma design
+	Amnesia UI - Example Script
+	Desktop-style engineering UI matching the Figma design
 ]]
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/library.luau"))()
 
--- Main Window
+-- ============================================================
+-- WINDOW
+-- ============================================================
+
 local Window = Library:CreateWindow({
 	Title = "amnesia [v1.0] | developed by dutu1337",
 	Size = Vector2.new(580, 420),
-	Position = UDim2.fromOffset(100, 100)
+	Position = UDim2.fromOffset(100, 100),
 })
 
--- Sidebar Categories
+-- ============================================================
+-- SIDEBAR
+-- ============================================================
+
 local Aimbot = Window:CreateSidebarCategory("aimbot")
 local Visuals = Window:CreateSidebarCategory("visuals")
 local Misc = Window:CreateSidebarCategory("misc")
 local Config = Window:CreateSidebarCategory("config")
 
--- Tabs
+-- ============================================================
+-- TABS
+-- ============================================================
+
 local Legitbot = Window:CreateTab("legitbot")
 local Triggerbot = Window:CreateTab("triggerbot")
 local Other = Window:CreateTab("other")
 
 -- ============================================================
--- LEGITBOT TAB
+-- LEGITBOT - LEFT - MAIN
 -- ============================================================
 
--- Left Column - Main settings
-local MainGroupbox = Legitbot:CreateGroupbox("main", "Left")
+local Main = Legitbot:CreateGroupbox("main", "Left")
 
-local enabledToggle = MainGroupbox:Toggle("enabled", false, function(value)
-	warn("Aimbot enabled:", value)
+Main:Toggle("enabled", false, function(v)
+	warn("aimbot:", v)
 end)
 
-local recoilToggle = MainGroupbox:Toggle("remove recoil", false, function(value)
-	warn("Remove recoil:", value)
+Main:Toggle("remove recoil", false, function(v)
+	warn("recoil:", v)
 end)
 
-local spreadToggle = MainGroupbox:Toggle("remove spread", false, function(value)
-	warn("Remove spread:", value)
+Main:Toggle("remove spread", false, function(v)
+	warn("spread:", v)
 end)
 
-local fovSlider = MainGroupbox:Slider("field of view", {
+Main:Slider("field of view", {
 	Min = 0,
 	Max = 100,
 	Default = 34,
-	Decimals = 0,
-}, function(value)
-	warn("FOV:", value)
+}, function(v)
+	warn("fov:", v)
 end)
 
-local hitchanceSlider = MainGroupbox:Slider("hitchance", {
+Main:Slider("hitchance", {
 	Min = 0,
 	Max = 100,
 	Default = 64,
-	Decimals = 0,
-}, function(value)
-	warn("Hitchance:", value)
+}, function(v)
+	warn("hitchance:", v)
 end)
 
-local targetDropdown = MainGroupbox:Dropdown("target selection", {
-	"slot 1",
-	"slot 2",
-	"slot 3",
-	"slot 4",
-	"slot 5"
-}, "slot 1", function(value)
-	warn("Target:", value)
+Main:Dropdown("target selection", {
+	"slot 1", "slot 2", "slot 3", "slot 4", "slot 5",
+}, "slot 1", function(v)
+	warn("target:", v)
 end)
 
-local hitboxesDropdown = MainGroupbox:Dropdown("hitboxes", {
-	"head",
-	"head, body",
-	"head, body, limbs",
-	"body",
-	"limbs"
-}, "head, body", function(value)
-	warn("Hitboxes:", value)
+Main:Dropdown("hitboxes", {
+	"head", "head, body", "head, body, limbs", "body", "limbs",
+}, "head, body", function(v)
+	warn("hitboxes:", v)
 end)
 
-local saveBtn = MainGroupbox:Button("save", function()
-	warn("Config saved!")
-	Library:Notify("Config saved successfully!", 2)
+Main:Button("save", function()
+	warn("saved!")
+	Library:Notify("config saved", 2)
 end)
 
-MainGroupbox:Separator("just a text!")
+Main:Separator("just a text!")
 
--- Right Column - Accuracy / Config slots
-local AccuracyGroupbox = Legitbot:CreateGroupbox("accuracy", "Right")
+-- ============================================================
+-- LEGITBOT - RIGHT - ACCURACY
+-- ============================================================
 
-local configNameInput = AccuracyGroupbox:Textbox("config name", "dutu1337", function(text)
-	warn("Config name:", text)
+local Accuracy = Legitbot:CreateGroupbox("accuracy", "Right")
+
+local ConfigName = Accuracy:Textbox("config name", "dutu1337", function(v)
+	warn("config name:", v)
 end)
 
 for i = 1, 9 do
-	local slotBtn = AccuracyGroupbox:Button("slot " .. i, function()
-		warn("Slot " .. i .. " selected")
-		configNameInput:SetText("slot_" .. i)
+	Accuracy:Button("slot " .. i, function()
+		warn("slot", i)
+		ConfigName:SetText("slot_" .. i)
 	end)
 end
 
 -- ============================================================
--- TRIGGERBOT TAB
+-- TRIGGERBOT - LEFT
 -- ============================================================
 
-local TriggerbotLeft = Triggerbot:CreateGroupbox("trigger settings", "Left")
-TriggerbotLeft:Toggle("enabled", false)
-TriggerbotLeft:Slider("delay", { Min = 0, Max = 500, Default = 50, Suffix = "ms" })
-TriggerbotLeft:Slider("hitchance", { Min = 0, Max = 100, Default = 80 })
-TriggerbotLeft:Dropdown("target part", { "Head", "HumanoidRootPart", "UpperTorso" }, "Head")
+local TBMain = Triggerbot:CreateGroupbox("trigger settings", "Left")
 
-local TriggerbotRight = Triggerbot:CreateGroupbox("conditions", "Right")
-TriggerbotRight:Toggle("visible only", true)
-TriggerbotRight:Toggle("team check", false)
-TriggerbotRight:Toggle("alive check", true)
+TBMain:Toggle("enabled", false, function(v)
+	warn("trigger:", v)
+end)
+
+TBMain:Slider("delay", {
+	Min = 0,
+	Max = 500,
+	Default = 50,
+	Suffix = "ms",
+}, function(v)
+	warn("delay:", v)
+end)
+
+TBMain:Slider("hitchance", {
+	Min = 0,
+	Max = 100,
+	Default = 80,
+}, function(v)
+	warn("tb hitchance:", v)
+end)
+
+TBMain:Dropdown("target part", {
+	"Head", "HumanoidRootPart", "UpperTorso",
+}, "Head", function(v)
+	warn("tb target:", v)
+end)
 
 -- ============================================================
--- OTHER TAB
+-- TRIGGERBOT - RIGHT
 -- ============================================================
 
-local OtherLeft = Other:CreateGroupbox("misc", "Left")
-OtherLeft:Toggle("silent aim", false)
-OtherLeft:Slider("silent fov", { Min = 0, Max = 100, Default = 20 })
-OtherLeft:Dropdown("hitpart", { "Head", "HumanoidRootPart" }, "Head")
+local TBCond = Triggerbot:CreateGroupbox("conditions", "Right")
 
-local OtherRight = Other:CreateGroupbox("settings", "Right")
-OtherRight:Slider("smoothness", { Min = 1, Max = 20, Default = 5, Decimals = 1 })
-OtherRight:Toggle("prediction", true)
-OtherRight:Slider("prediction factor", { Min = 0, Max = 1, Default = 0.165, Decimals = 3 })
+TBCond:Toggle("visible only", true)
+TBCond:Toggle("team check", false)
+TBCond:Toggle("alive check", true)
+TBCond:Keybind("trigger key", Enum.KeyCode.MouseButton2, function(k)
+	warn("trigger key:", k)
+end)
 
 -- ============================================================
--- TOOLTIPS
+-- OTHER - LEFT
 -- ============================================================
 
-Library.Tooltip:Bind(enabledToggle, "Toggle aimbot on/off")
-Library.Tooltip:Bind(recoilToggle, "Remove weapon recoil")
-Library.Tooltip:Bind(spreadToggle, "Remove weapon spread")
-Library.Tooltip:Bind(saveBtn, "Save current configuration")
+local OTMisc = Other:CreateGroupbox("misc", "Left")
 
-print("=== Amnesia UI Loaded ===")
+OTMisc:Toggle("silent aim", false, function(v)
+	warn("silent:", v)
+end)
+
+OTMisc:Slider("silent fov", {
+	Min = 0,
+	Max = 100,
+	Default = 20,
+}, function(v)
+	warn("silent fov:", v)
+end)
+
+OTMisc:Dropdown("hitpart", {
+	"Head", "HumanoidRootPart",
+}, "Head", function(v)
+	warn("hitpart:", v)
+end)
+
+-- ============================================================
+-- OTHER - RIGHT
+-- ============================================================
+
+local OTSettings = Other:CreateGroupbox("settings", "Right")
+
+OTSettings:Slider("smoothness", {
+	Min = 1,
+	Max = 20,
+	Default = 5,
+	Decimals = 1,
+}, function(v)
+	warn("smooth:", v)
+end)
+
+OTSettings:Toggle("prediction", true)
+OTSettings:Slider("prediction factor", {
+	Min = 0,
+	Max = 1,
+	Default = 0.165,
+	Decimals = 3,
+}, function(v)
+	warn("pred factor:", v)
+end)
+
+OTSettings:ColorPicker("accent color", Library.Theme.Accent, function(c)
+	warn("color:", c)
+end)
+
+-- ============================================================
+-- DONE
+-- ============================================================
+
+Library:Notify("amnesia loaded", 3)
