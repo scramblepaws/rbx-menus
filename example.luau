@@ -144,7 +144,7 @@ local TBCond = Triggerbot:CreateGroupbox("conditions", "Right")
 TBCond:Toggle("visible only", true)
 TBCond:Toggle("team check", false)
 TBCond:Toggle("alive check", true)
-TBCond:Keybind("trigger key", Enum.KeyCode.MouseButton2, function(k)
+TBCond:Keybind("trigger key", Enum.KeyCode.X, function(k)
 	warn("trigger key:", k)
 end)
 
