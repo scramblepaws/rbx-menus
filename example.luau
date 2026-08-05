@@ -1,9 +1,60 @@
 --[[
 	Amnesia UI - Example Script
 	Desktop-style engineering UI matching the Figma design
+	Includes fallback HTTP methods for executor compatibility
 ]]
 
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/library.luau"))()
+local LIBRARY_URL = "https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/library.luau"
+
+local function fetch(url)
+	local content = nil
+
+	-- Try game:HttpGet
+	if not content then
+		local ok, result = pcall(game.HttpGet, game, url)
+		if ok and result and #result > 100 then
+			content = result
+		end
+	end
+
+	-- Try request
+	if not content and request then
+		local ok, result = pcall(request, { Url = url, Method = "GET" })
+		if ok and result and result.Body and #result.Body > 100 then
+			content = result.Body
+		end
+	end
+
+	-- Try http_request
+	if not content and http_request then
+		local ok, result = pcall(http_request, { Url = url, Method = "GET" })
+		if ok and result and result.Body and #result.Body > 100 then
+			content = result.Body
+		end
+	end
+
+	-- Try syn.request
+	if not content and syn and syn.request then
+		local ok, result = pcall(syn.request, { Url = url, Method = "GET" })
+		if ok and result and result.Body and #result.Body > 100 then
+			content = result.Body
+		end
+	end
+
+	return content
+end
+
+local librarySource = fetch(LIBRARY_URL)
+if not librarySource then
+	error("[amnesia] failed to fetch library")
+	return
+end
+
+local Library = loadstring(librarySource)()
+if not Library then
+	error("[amnesia] failed to load library")
+	return
+end
 
 -- ============================================================
 -- WINDOW
