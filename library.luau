@@ -36,14 +36,16 @@ local Theme = {
 	Accent           = Color3.fromRGB(168, 166, 255),
 	Font             = Enum.Font.SourceSans,
 	FontMono         = Enum.Font.Code,
-	FontSize         = 12,
-	FontSizeSmall    = 11,
-	Padding          = 10,
-	OuterPadding     = 16,
-	ControlSpacing   = 6,
-	GroupSpacing     = 14,
+	FontSize         = 14,
+	FontSizeSmall    = 13,
+	Padding          = 12,
+	OuterPadding     = 20,
+	ControlSpacing   = 8,
+	GroupSpacing     = 18,
 	BorderThickness  = 1,
-	ControlHeight    = 20,
+	ControlHeight    = 24,
+	TopBarHeight     = 34,
+	HeaderHeight     = 38,
 	CornerRadius     = 0,
 }
 
@@ -132,8 +134,8 @@ function Controls.Checkbox(parentFrame, text, initial, callback)
 	container.Parent = parentFrame
 
 	local box = new("Frame", {
-		Size = UDim2.new(0, 12, 0, 12),
-		Position = UDim2.new(0, 0, 0.5, -6),
+		Size = UDim2.new(0, 14, 0, 14),
+		Position = UDim2.new(0, 0, 0.5, -7),
 		BackgroundColor3 = initial and Theme.Accent or Theme.PanelBackground,
 		BorderSizePixel = 0,
 		Parent = container,
@@ -141,8 +143,8 @@ function Controls.Checkbox(parentFrame, text, initial, callback)
 	applyBorder(box, Theme.Border)
 
 	local lbl = label(text, {
-		Position = UDim2.new(0, 20, 0, 0),
-		Size = UDim2.new(1, -20, 1, 0),
+		Position = UDim2.new(0, 24, 0, 0),
+		Size = UDim2.new(1, -24, 1, 0),
 		TextColor3 = Theme.TextPrimary,
 	})
 	lbl.Parent = container
@@ -180,7 +182,7 @@ end
 function Controls.Slider(parentFrame, text, min, max, default, callback)
 	local outer = new("Frame", {
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, Theme.ControlHeight + 14),
+		Size = UDim2.new(1, 0, 0, Theme.ControlHeight + 16),
 		Parent = parentFrame,
 	})
 
@@ -202,8 +204,8 @@ function Controls.Slider(parentFrame, text, min, max, default, callback)
 	valueLabel.Parent = topRow
 
 	local track = new("Frame", {
-		Position = UDim2.new(0, 0, 0, Theme.ControlHeight + 4),
-		Size = UDim2.new(1, 0, 0, 2),
+		Position = UDim2.new(0, 0, 0, Theme.ControlHeight + 6),
+		Size = UDim2.new(1, 0, 0, 3),
 		BackgroundColor3 = Theme.BorderSecondary,
 		BorderSizePixel = 0,
 		Parent = outer,
@@ -221,8 +223,8 @@ function Controls.Slider(parentFrame, text, min, max, default, callback)
 	local thumb = new("TextButton", {
 		Text = "",
 		AutoButtonColor = false,
-		Size = UDim2.new(0, 6, 0, 12),
-		Position = UDim2.new(fillRatio, -3, 0.5, -6),
+		Size = UDim2.new(0, 8, 0, 16),
+		Position = UDim2.new(fillRatio, -4, 0.5, -8),
 		BackgroundColor3 = Theme.PanelBackground,
 		BorderSizePixel = 0,
 		Parent = track,
@@ -238,7 +240,7 @@ function Controls.Slider(parentFrame, text, min, max, default, callback)
 		local ratio = math.clamp((xPos - trackAbsPos) / trackAbsSize, 0, 1)
 		currentValue = min + (max - min) * ratio
 		fill.Size = UDim2.new(ratio, 0, 1, 0)
-		thumb.Position = UDim2.new(ratio, -3, 0.5, -6)
+		thumb.Position = UDim2.new(ratio, -4, 0.5, -8)
 		local rounded = math.floor(currentValue * 10 + 0.5) / 10
 		valueLabel.Text = tostring(rounded)
 		if callback then
@@ -268,7 +270,7 @@ function Controls.Slider(parentFrame, text, min, max, default, callback)
 			local ratio = math.clamp((value - min) / (max - min), 0, 1)
 			currentValue = value
 			fill.Size = UDim2.new(ratio, 0, 1, 0)
-			thumb.Position = UDim2.new(ratio, -3, 0.5, -6)
+			thumb.Position = UDim2.new(ratio, -4, 0.5, -8)
 			valueLabel.Text = tostring(value)
 		end,
 		Get = function()
@@ -290,8 +292,8 @@ function Controls.TextInput(parentFrame, placeholder, default, callback)
 	applyBorder(box, Theme.Border)
 
 	new("UIPadding", {
-		PaddingLeft = UDim.new(0, 6),
-		PaddingRight = UDim.new(0, 6),
+		PaddingLeft = UDim.new(0, 8),
+		PaddingRight = UDim.new(0, 8),
 		Parent = box,
 	})
 
@@ -347,8 +349,8 @@ function Controls.Dropdown(parentFrame, options, defaultIndex, callback)
 	applyBorder(box, Theme.Border)
 
 	new("UIPadding", {
-		PaddingLeft = UDim.new(0, 6),
-		PaddingRight = UDim.new(0, 6),
+		PaddingLeft = UDim.new(0, 8),
+		PaddingRight = UDim.new(0, 8),
 		Parent = box,
 	})
 
@@ -654,7 +656,7 @@ function Window.new(opts)
 	opts = opts or {}
 	local self = setmetatable({}, Window)
 
-	local size = opts.Size or UDim2.new(0, 800, 0, 500)
+	local size = opts.Size or UDim2.new(0, 900, 0, 560)
 
 	local root = new("Frame", {
 		Size = size,
@@ -667,7 +669,7 @@ function Window.new(opts)
 
 	-- Header
 	local header = new("Frame", {
-		Size = UDim2.new(1, 0, 0, 32),
+		Size = UDim2.new(1, 0, 0, Theme.HeaderHeight),
 		BackgroundTransparency = 1,
 		Parent = root,
 	})
@@ -700,7 +702,37 @@ function Window.new(opts)
 	})
 
 	local headerLine = new("Frame", {
-		Position = UDim2.new(0, 0, 0, 32),
+		Position = UDim2.new(0, 0, 0, Theme.HeaderHeight),
+		Size = UDim2.new(1, 0, 0, 1),
+		BackgroundColor3 = Theme.Border,
+		BorderSizePixel = 0,
+		Parent = root,
+	})
+
+	-- Top bar: horizontal row of tab labels (populated by Window:AddTab)
+	local topBarY = Theme.HeaderHeight + 1
+	local topBar = new("Frame", {
+		Position = UDim2.new(0, 0, 0, topBarY),
+		Size = UDim2.new(1, 0, 0, Theme.TopBarHeight),
+		BackgroundTransparency = 1,
+		Parent = root,
+	})
+	new("UIPadding", {
+		PaddingLeft = UDim.new(0, Theme.OuterPadding),
+		PaddingRight = UDim.new(0, Theme.OuterPadding),
+		Parent = topBar,
+	})
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, Theme.GroupSpacing),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = topBar,
+	})
+
+	local topBarLine = new("Frame", {
+		Position = UDim2.new(0, 0, 0, topBarY + Theme.TopBarHeight),
 		Size = UDim2.new(1, 0, 0, 1),
 		BackgroundColor3 = Theme.Border,
 		BorderSizePixel = 0,
@@ -708,14 +740,15 @@ function Window.new(opts)
 	})
 
 	-- Body: sidebar + content
+	local bodyY = topBarY + Theme.TopBarHeight + 1
 	local body = new("Frame", {
-		Position = UDim2.new(0, 0, 0, 33),
-		Size = UDim2.new(1, 0, 1, -33),
+		Position = UDim2.new(0, 0, 0, bodyY),
+		Size = UDim2.new(1, 0, 1, -bodyY),
 		BackgroundTransparency = 1,
 		Parent = root,
 	})
 
-	local sidebarWidth = opts.SidebarWidth or 140
+	local sidebarWidth = opts.SidebarWidth or 160
 
 	local sidebar = new("Frame", {
 		Size = UDim2.new(0, sidebarWidth, 1, 0),
@@ -759,8 +792,10 @@ function Window.new(opts)
 	self._root = root
 	self._sidebar = sidebar
 	self._content = content
+	self._topBar = topBar
 	self._navItems = {}
 	self._tabs = {}
+	self._topTabButtons = {}
 	self._activeNav = nil
 	self._activeTab = nil
 
