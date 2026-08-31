@@ -16,7 +16,7 @@
     ============================================================ ]]
 
 -- // Load the library from GitHub (replace <user>/<repo> with your real repo)
-local LIB_URL = "https://raw.githubusercontent.com/<user>/<repo>/main/SeriousHook.lua"
+local LIB_URL = "https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/SeriousHook.lua"
 -- Example: "https://raw.githubusercontent.com/molly/serioushook/main/SeriousHook.lua"
 
 -- // Safety wrapper: never let a bad URL / parse error silently blank the injection.
