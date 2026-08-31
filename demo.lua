@@ -3,17 +3,33 @@
     Loads SeriousHook.lua from GitHub via loadstring and builds
     a full-featured demo UI exercising every library feature.
 
-    Drop this into a Roblox LocalScript (e.g. StarterPlayerScripts)
-    or any environment that supports the Drawing API.
+    HOW TO RUN (executor format):
+      1. Push SeriousHook.lua to a GitHub repo as  main/SeriousHook.lua
+      2. Set LIB_URL below to your raw GitHub URL
+      3. Paste THIS file into your Roblox executor (Synapse X, Delta, etc.)
+         while Counter Blox (or any game) is open
+
+    The single critical line is the loadstring(game:HttpGet(...))() call —
+    that is the "executor format" every Roblox menu script uses.
 
     GitHub path:  https://raw.githubusercontent.com/<user>/<repo>/main/SeriousHook.lua
     ============================================================ ]]
 
 -- // Load the library from GitHub (replace <user>/<repo> with your real repo)
-local LIB_URL = "https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/SeriousHook.lua"
+local LIB_URL = "https://raw.githubusercontent.com/<user>/<repo>/main/SeriousHook.lua"
 -- Example: "https://raw.githubusercontent.com/molly/serioushook/main/SeriousHook.lua"
 
-local Library = loadstring(game:HttpGet(LIB_URL))()
+-- // Safety wrapper: never let a bad URL / parse error silently blank the injection.
+-- // loadstring + game:HttpGet are executor-provided APIs and only exist inside the
+-- // Roblox client + executor runtime (Synapse X, Delta, Script-Ware, etc.).
+local ok, Library = pcall(function()
+    return loadstring(game:HttpGet(LIB_URL, true))()
+end)
+
+if not ok or not Library then
+    warn("[SeriousHook] Failed to load library from:\n  " .. LIB_URL .. "\n  Error: " .. tostring(Library))
+    return
+end
 
 -- // Create the main window
 local Window = Library:New({
@@ -472,6 +488,11 @@ AbMain:Button({
         Window:Toast("Keybinds list toggled", "info")
     end,
 })
+
+-- // Expose to the executor environment so other scripts / re-runs can reach it.
+-- // getgenv() is preferred over _G for cross-script persistence in executors.
+getgenv().SeriousHook = Library
+getgenv().SeriousHookWindow = Window
 
 -- ============================================================
 -- Initialize
