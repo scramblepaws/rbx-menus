@@ -4,19 +4,20 @@
     a full-featured demo UI exercising every library feature.
 
     HOW TO RUN (executor format):
-      1. Push SeriousHook.lua to a GitHub repo as  main/SeriousHook.lua
-      2. Set LIB_URL below to your raw GitHub URL
-      3. Paste THIS file into your Roblox executor (Synapse X, Delta, etc.)
+      1. Push SeriousHook.lua to:
+         https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/SeriousHook.lua
+      2. Paste THIS file into your Roblox executor (Synapse X, Delta, etc.)
          while Counter Blox (or any game) is open
 
     The single critical line is the loadstring(game:HttpGet(url))() call —
     that is the "executor format" every Roblox menu script uses.
 
-    GitHub path:  https://raw.githubusercontent.com/<user>/<repo>/main/SeriousHook.lua
+    GitHub path:  https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/SeriousHook.lua
     ============================================================ ]]
 
--- // Load the library from GitHub (replace <user>/<repo> with your real repo)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/SeriousHook.lua"))()
+-- // Load the library from GitHub (raw URL inlined, executor format)
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/SeriousHook.lua"))()
+
 -- // Create the main window
 local Window = Library:New({
     Name   = "SeriousHook Demo",
