@@ -16,11 +16,7 @@
     ============================================================ ]]
 
 -- // Load the library from GitHub (replace <user>/<repo> with your real repo)
-local LIB_URL = "https://raw.githubusercontent.com/<user>/<repo>/main/SeriousHook.lua"
--- Example: "https://raw.githubusercontent.com/molly/serioushook/main/SeriousHook.lua"
-
-local Library = loadstring(game:HttpGet(LIB_URL))()
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/SeriousHook.lua"))()
 -- // Create the main window
 local Window = Library:New({
     Name   = "SeriousHook Demo",
