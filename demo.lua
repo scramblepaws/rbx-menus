@@ -9,27 +9,17 @@
       3. Paste THIS file into your Roblox executor (Synapse X, Delta, etc.)
          while Counter Blox (or any game) is open
 
-    The single critical line is the loadstring(game:HttpGet(...))() call —
+    The single critical line is the loadstring(game:HttpGet(url))() call —
     that is the "executor format" every Roblox menu script uses.
 
     GitHub path:  https://raw.githubusercontent.com/<user>/<repo>/main/SeriousHook.lua
     ============================================================ ]]
 
 -- // Load the library from GitHub (replace <user>/<repo> with your real repo)
-local LIB_URL = "https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/SeriousHook.lua"
+local LIB_URL = "https://raw.githubusercontent.com/<user>/<repo>/main/SeriousHook.lua"
 -- Example: "https://raw.githubusercontent.com/molly/serioushook/main/SeriousHook.lua"
 
--- // Safety wrapper: never let a bad URL / parse error silently blank the injection.
--- // loadstring + game:HttpGet are executor-provided APIs and only exist inside the
--- // Roblox client + executor runtime (Synapse X, Delta, Script-Ware, etc.).
-local ok, Library = pcall(function()
-    return loadstring(game:HttpGet(LIB_URL, true))()
-end)
-
-if not ok or not Library then
-    warn("[SeriousHook] Failed to load library from:\n  " .. LIB_URL .. "\n  Error: " .. tostring(Library))
-    return
-end
+local Library = loadstring(game:HttpGet(LIB_URL))()
 
 -- // Create the main window
 local Window = Library:New({
