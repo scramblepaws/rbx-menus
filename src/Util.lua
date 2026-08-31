@@ -256,4 +256,7 @@ end
 local math_clamp = math.clamp or function(x, a, b) return x < a and a or x > b and b or x end
 U.clamp = math_clamp
 
+-- Expose for concatenated builds (return is dead code in single-file mode)
+SeriousHook.Util = U
+
 return U

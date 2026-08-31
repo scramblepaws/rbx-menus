@@ -207,7 +207,7 @@ SeriousHook.Window = function(opts)
 		end
 		SeriousHook.Connections = {}
 
-		for i = #SeriousHook.Hidden, 1, -1 do
+			for i = #SeriousHook.Drawings, 1, -1 do
 			local e = SeriousHook.Hidden[i]
 			if e and e[1] and e[1].Remove and e[1].__OBJECT_EXISTS then
 				e[1]:Remove()
@@ -233,6 +233,11 @@ SeriousHook.Window = function(opts)
 
 	-- Initialize: show first page, build overlays, attach input, start render loop
 	function window:Initialize()
+		-- Attach overlay instance methods so win:Watermark() etc. resolve via __index
+		self.Watermark = function(info) SeriousHook.Window.Watermark(self, info) end
+		self.Keylist    = function(info) SeriousHook.Window.Keylist(self, info) end
+		self.Cursor     = function(info) SeriousHook.Window.Cursor(self, info) end
+
 		if window.pages[1] then window.pages[1]:Show() end
 		SeriousHook.shared.initialized = true
 		window:Watermark()

@@ -49,4 +49,7 @@ TH.textcolor     = TH.text
 TH.textborder    = TH.textOutline
 TH.cursoroutline = TH.cursorOuter
 
+-- Expose for concatenated builds (return is dead code in single-file mode)
+SeriousHook.Theme = TH
+
 return TH
