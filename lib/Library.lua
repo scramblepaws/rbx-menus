@@ -1424,10 +1424,10 @@ function Section:Colorpicker(info)
 			h = newH
 			color = Color3.fromHSV(h, s, v)
 			Swatch.BackgroundColor3 = color
-			hueFill.Color = Color3.fromHSV(h, 1, 1)
+			hueFill.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
 			hueFill.Size = UDim2.new(math.clamp(h, 0.001, 1), 0, 1, 0)
 			hueKnob.Position = UDim2.new(math.clamp(h, 0.02, 0.98), 0, 0, 0)
-			alphaFill.Color = color
+			alphaFill.BackgroundColor3 = color
 			updateCb()
 		end
 		local function setAlpha(a)
