@@ -28,7 +28,7 @@ ThemeManager._DefaultFont = (function(...)
 		if ok and f then return f end
 	end
 	return Enum.Font.SourceSans
-end)("Gotham", "GothamBook", "GothamSemibold", "SourceSans")
+end)("GothamBook", "Gotham", "GothamSemibold", "SourceSans")
 
 ThemeManager.BuiltInThemes = {
 	Dark = {

@@ -15,20 +15,29 @@
 --]]
 local HttpService = game:GetService("HttpService")
 
+local function colorToHex(c)
+	return string.format("%02x%02x%02x", math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255))
+end
+local function hexToColor(h)
+	h = h:gsub("#", "")
+	local r, g, b = tonumber(h:sub(1, 2), 16), tonumber(h:sub(3, 4), 16), tonumber(h:sub(5, 6), 16)
+	return Color3.fromRGB(r or 0, g or 0, b or 0)
+end
+
 local SaveManager = {
 	-- executor-provided filesystem APIs (nil on vanilla Studio)
 	ConfigFile = nil,
 	FoldersConfigured = false,
 	IgnoreIndentifiers = {},   -- pointers to skip when saving/loading
 	Parser = {                 -- per-type (de)serializers, driven by Library.pointers[].Type
-		Toggle     = { Parse = function(self, self2) return self.Value end, Sync = function(self, self2, v) self:Flip(v) end },
+		Toggle     = { Parse = function(self, self2) return self.Value end, Sync = function(self, self2, v) self:SetValue(v) end },
 		Slider     = { Parse = function(self, self2) return self.Value end, Sync = function(self, self2, v) self:SetValue(v) end },
 		Button     = { Parse = function(self, self2) return nil end, Sync = function(self, self2, v) end },
 		Dropdown   = { Parse = function(self, self2) return self.Value end, Sync = function(self, self2, v) self:SetValue(v) end },
 		Multibox   = { Parse = function(self, self2) return self.Value end, Sync = function(self, self2, v) self:SetValue(v) end },
-		Keybind    = { Parse = function(self, self2) return self.Value.Name end, Sync = function(self, self2, v) self:SetValue(v) end },
-		Colorpicker= { Parse = function(self, self2) local c = self.Value; return {Color = c.Color, Transparency = c.Transparency} end,
-		               Sync = function(self, self2, v) if type(v) == "table" then self:SetValue(v.Color, v.Transparency) else self:SetValue(v) end end },
+		Keybind    = { Parse = function(self, self2) return self.Value.Name end, Sync = function(self, self2, v) if type(v) == "string" then v = Enum.KeyCode.FromString(v) or Enum.KeyCode.E end; self:SetValue(v) end },
+		Colorpicker= { Parse = function(self, self2) local c = self.Value; return {Color = colorToHex(c.Color), Transparency = tonumber(c.Transparency) or 1} end,
+		               Sync = function(self, self2, v) if type(v) == "table" then self:SetValue(hexToColor(v.Color), tonumber(v.Transparency) or 1) else self:SetValue(hexToColor(v), 1) end end },
 		Input      = { Parse = function(self, self2) return self.Value end, Sync = function(self, self2, v) self:SetValue(v) end },
 		Label      = { Parse = function(self, self2) return nil end, Sync = function(self, self2, v) end },
 		Divider    = { Parse = function(self, self2) return nil end, Sync = function(self, self2, v) end },

@@ -60,7 +60,7 @@ local function resolveFont(...)
 	end
 	return Enum.Font.SourceSans
 end
-local DefaultFont = resolveFont("Gotham", "GothamBook", "GothamSemibold", "SourceSans")
+local DefaultFont = resolveFont("GothamBook", "Gotham", "GothamSemibold", "SourceSans")
 
 local Theme = {
 	Font            = DefaultFont,
@@ -132,15 +132,30 @@ Library._Effects  = {}
 Library._Shadows  = {}
 
 ------------------------------- DPI helper -------------------------------
-local function computeScale()
+local function getViewportSize()
 	local cam = workspace.CurrentCamera
-	local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
+	if cam then
+		local ok, vp = pcall(function() return cam.ViewportSize end)
+		if ok and vp then return vp end
+	end
+	local ok, ws = pcall(function() return UserInputService.WindowSize end)
+	if ok and ws and ws.X and ws.Y then return ws end
+	return Vector2.new(1920, 1080)
+end
+local function computeScale()
+	local vp = getViewportSize()
 	return math.clamp(vp.X / 1920, 0.72, 1.12)
 end
 Library.DPIScale = computeScale()
-RunService:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+local function refreshUIScale()
 	Library.DPIScale = computeScale()
 	for _, ui in ipairs(Library._UIScales) do ui.Scale = Library.DPIScale end
+end
+pcall(function()
+	RunService:GetPropertyChangedSignal("ViewportSize"):Connect(refreshUIScale)
+end)
+pcall(function()
+	UserInputService:GetPropertyChangedSignal("WindowSize"):Connect(refreshUIScale)
 end)
 
 ------------------------------- Utility layer -------------------------------
@@ -1530,7 +1545,7 @@ function Library:ToggleKeybindsList(Window)
 	self.keybindslist.open = not self.keybindslist.open
 	if self.keybindslist.open then
 		if not Window._KeybindsFrame then
-			local vp = (workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize) or Vector2.new(1920,1080)
+			local vp = getViewportSize()
 			local fr = self:Create("Frame", {
 				BackgroundColor3 = self.BackgroundColor, BorderColor3 = self.OutlineColor, BorderSizePixel = 1,
 				Size = UDim2.new(0, 170, 0, 30), Position = UDim2.new(0, vp.X - 182, 0, 30), ZIndex = 200,
@@ -1552,7 +1567,7 @@ end
 -- Watermark object
 Library.watermark = { enabled = false, frame = nil, text = nil }
 function Library.watermark:UpdateSize()
-	local vp = (workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize) or Vector2.new(1920,1080)
+	local vp = getViewportSize()
 	self.frame.Size = UDim2.new(0, 182, 0, 24)
 	self.frame.Position = UDim2.new(0, vp.X - 192, 0, 8)
 	self.text.Size = UDim2.new(0, 168, 0, 20)
@@ -1578,7 +1593,7 @@ end
 -- Stats object
 Library.stats = { enabled = false, fpsText = nil, pingText = nil }
 function Library.stats:UpdatePosition()
-	local vp = (workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize) or Vector2.new(1920,1080)
+	local vp = getViewportSize()
 	if self.fpsText and self.fpsText.Parent then self.fpsText.Position = UDim2.new(0, 10, 0, vp.Y - 50) end
 	if self.pingText and self.pingText.Parent then self.pingText.Position = UDim2.new(0, 10, 0, vp.Y - 32) end
 end
@@ -1613,7 +1628,7 @@ function Library.toasts:Add(message, style, duration)
 	local id = self.nextId; self.nextId = self.nextId + 1
 	local screen = Library._ScreenGui
 	if not screen then return id end
-	local vp = (workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize) or Vector2.new(1920,1080)
+	local vp = getViewportSize()
 	local toastW, toastH = 230, 38
 	local baseY = vp.Y - 14 - (#self.active) * (toastH + 6)
 
@@ -1656,7 +1671,7 @@ function Library.toasts:Remove(id)
 	end
 end
 function Library.toasts:Reposition()
-	local vp = (workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize) or Vector2.new(1920,1080)
+	local vp = getViewportSize()
 	for i, e in ipairs(self.active) do
 		if e.frame then
 			e.frame.Position = UDim2.new(vp.X - 230 - 14, 0, 0, vp.Y - 14 - (i-1) * (38 + 6))
@@ -1745,35 +1760,55 @@ local function hexToColor(h)
 	return Color3.fromRGB(r or 0, g or 0, b or 0)
 end
 
-local function serializeValue(value)
+-- Produce a JSON-safe value tree (Roblox Color3/EnumItem can't be JSONEncoded directly).
+local function toJSONSafe(value)
 	local t = typeof(value)
-	if t == "string"           then return '"' .. tostring(value):gsub("\\","\\\\"):gsub('"','\\"'):gsub("\n","\\n") .. '"'
-	elseif t == "boolean" or t == "number" then return tostring(value)
-	elseif t == "Color3"        then return '"' .. colorToHex(value) .. '"'
-	elseif t == "EnumItem"      then return '"' .. tostring(value.Name or value) .. '"'
+	if t == "string" or t == "boolean" or t == "number" then
+		return value
+	elseif t == "Color3" then
+		return colorToHex(value)
+	elseif t == "EnumItem" then
+		return value.Name or tostring(value)
 	elseif t == "table" then
 		if value.Color and typeof(value.Color) == "Color3" then
-			return string.format('{"Color":"%s","Transparency":%f}', colorToHex(value.Color), tonumber(value.Transparency) or 1)
+			return { Color = colorToHex(value.Color), Transparency = tonumber(value.Transparency) or 1 }
 		end
-		local parts, isArr = {}, (#value > 0)
+		local out, isArr = {}, (#value > 0)
 		if isArr then
-			for _, v in ipairs(value) do parts[#parts+1] = serializeValue(v) end
-			return "[" .. table.concat(parts, ",") .. "]"
+			for i, v in ipairs(value) do out[i] = toJSONSafe(v) end
 		else
-			local keys = {}
-			for k in pairs(value) do keys[#keys+1] = k end
-			table.sort(keys, function(a,b) return tostring(a) < tostring(b) end)
-			for _, k in ipairs(keys) do parts[#parts+1] = serializeValue(k) .. ":" .. serializeValue(value[k]) end
-			return "{" .. table.concat(parts, ",") .. "}"
+			for k, v in pairs(value) do out[k] = toJSONSafe(v) end
 		end
+		return out
 	end
-	return '"' .. tostring(value) .. '"'
+	return tostring(value)
+end
+
+-- Apply a decoded config value to a widget, dispatching on type so the
+-- widget's own SetValue (which updates display + fires OnChanged) is used.
+local function applyValue(entry, value)
+	local obj = entry.Object
+	if not obj then entry.Set(value); return end
+	local t = entry.Type
+	if t == "Colorpicker" then
+		local c = (type(value) == "table" and value.Color) or value
+		local a = type(value) == "table" and tonumber(value.Transparency) or 1
+		if type(c) == "string" then c = hexToColor(c) end
+		if obj.SetValue then obj:SetValue(c, a) else entry.Set(value) end
+	elseif t == "Keybind" then
+		if type(value) == "string" then value = (Enum.KeyCode.FromString(value) or Enum.KeyCode.E) end
+		if obj.SetValue then obj:SetValue(value) else entry.Set(value) end
+	elseif t == "Toggle" or t == "Slider" or t == "Dropdown" or t == "Multibox" or t == "Input" then
+		if obj.SetValue then obj:SetValue(value) else entry.Set(value) end
+	else
+		entry.Set(value)
+	end
 end
 
 function Library:GetConfig()
 	local data = {}
 	for pointer, entry in pairs(self.pointers) do
-		data[pointer] = entry.Get()
+		data[pointer] = toJSONSafe(entry.Get())
 	end
 	return HttpService:JSONEncode(data)
 end
@@ -1787,10 +1822,11 @@ function Library:LoadConfig(configStr)
 	for pointer, value in pairs(data) do
 		local entry = self.pointers[pointer]
 		if entry then
-			if type(value) == "table" and value.Color and type(value.Color) == "string" then
+			local t = entry.Type
+			if t == "Colorpicker" and type(value) == "table" and type(value.Color) == "string" then
 				value = { Color = hexToColor(value.Color), Transparency = tonumber(value.Transparency) or 1 }
 			end
-			entry:Set(value)
+			applyValue(entry, value)
 		end
 	end
 	return true
@@ -1798,7 +1834,7 @@ end
 
 function Library:GetConfigTable()
 	local data = {}
-	for pointer, entry in pairs(self.pointers) do data[pointer] = entry.Get() end
+	for pointer, entry in pairs(self.pointers) do data[pointer] = toJSONSafe(entry.Get()) end
 	return data
 end
 
@@ -1898,6 +1934,9 @@ function Library:Notify(Text, Time)
 	self.toasts:Add(Text, "info", Time)
 end
 
-getgenv().Library = Library
+-- expose globally for executors (no-op in vanilla Studio where getgenv is nil)
+if typeof(getgenv) == "function" then
+	getgenv().Library = Library
+end
 
 return Library
