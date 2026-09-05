@@ -31,6 +31,32 @@ local Library = {
         ping  = 0,
         tick  = 0,
     },
+
+    -- // subsystem state / method tables (defined on Library so module-scope
+    -- // methods like `function Library.watermark:UpdateSize()` resolve)
+    watermark = {
+        text      = nil,
+        frame      = nil,
+        enabled    = true,
+        updateConn = nil,
+    },
+    toasts = {
+        list       = {},
+        active     = {},
+        connector    = nil,
+        nextId     = 1,
+    },
+    keybindslist = {
+        entries    = {},
+        frame      = nil,
+        open       = false,
+        updateConn = nil,
+    },
+    stats = {
+        enabled   = true,
+        fpsText   = nil,
+        pingText  = nil,
+    },
 }
 
 -- // Theme (defaults)
@@ -422,36 +448,12 @@ function Library:New(info)
             keybind    = nil,
         },
 
-        -- watermark
-        watermark = {
-            text      = nil,
-            frame      = nil,
-            enabled    = true,
-            updateConn = nil,
-        },
-
-        -- toasts
-        toasts = {
-            list     = {},
-            active   = {},
-            connector = nil,
-            nextId   = 1,
-        },
-
-        -- keybinds list
-        keybindslist = {
-            entries    = {},
-            frame      = nil,
-            open       = false,
-            updateConn = nil,
-        },
-
-        -- stat overlay (FPS/ping)
-        stats = {
-            enabled = true,
-            fpsText = nil,
-            pingText = nil,
-        },
+        -- watermark / toasts / keybindslist / stats are method tables defined on
+        -- Library at module scope; alias them so Window instances inherit them.
+        watermark    = Library.watermark,
+        toasts       = Library.toasts,
+        keybindslist = Library.keybindslist,
+        stats        = Library.stats,
 
         -- internal
         main_frame = nil,
