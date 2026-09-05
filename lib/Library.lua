@@ -1316,8 +1316,10 @@ function Section:Colorpicker(info)
 		self.Library:AddToRegistry(InfoL, { TextColor3 = "TextColorSub" })
 	end
 
-	local Swatch = self.Library:Create("Frame", {
-		BackgroundColor3 = color, BorderSizePixel = 0,
+	local Swatch = self.Library:Create("TextButton", {
+		BackgroundColor3 = color, BorderSizePixel = 0, Text = "",
+		AutoButtonColor = false, Font = self.Library.Font, TextSize = self.Library.FontSize,
+		TextColor3 = Color3.fromRGB(255, 255, 255), TextTransparency = 1,
 		Size = UDim2.new(0, 80, 0, 80), Position = UDim2.new(1, -82, 0, 0), ZIndex = 6,
 	}, Row)
 	self.Library:Create("UICorner", { CornerRadius = UDim.new(0, 4) }, Swatch)
