@@ -1512,7 +1512,7 @@ function Section:TextBox(info)
 		Size = UDim2.new(1, 0, 0, 22), Position = UDim2.new(0, 0, 0, 20),
 		Text = default, PlaceholderText = placeholder, ClearTextOnFocus = false,
 		TextColor3 = self.Library.TextColor, TextSize = self.Library.FontSize, Font = self.Library.Font,
-		TextXAlignment = Enum.TextXAlignment.Left, AutoButtonColor = false, ZIndex = 6,
+		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 6,
 	}, Row)
 	self.Library:AddToRegistry(Box, { BackgroundColor3 = "InlineColor", BorderColor3 = "OutlineColor", TextColor3 = "TextColor" })
 	self.Library:Create("UICorner", { CornerRadius = UDim.new(0, 4) }, Box)
