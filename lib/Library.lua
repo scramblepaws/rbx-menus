@@ -194,7 +194,6 @@ function Library:CreateLabel(Properties)
 		RichText               = true,
 		Text                   = Properties.Text or "",
 		TextXAlignment         = Properties.TextXAlignment or Enum.TextXAlignment.Left,
-		AutoButtonColor        = false,
 		Position               = Properties.Position,
 		Size                   = Properties.Size,
 		ZIndex                 = Properties.ZIndex or 1,
@@ -529,8 +528,9 @@ function Library:WindowPage(Window, info)
 		BackgroundColor3 = self.BackgroundColor, BorderSizePixel = 0,
 		TextColor3 = self.TextColorSub, TextSize = self.FontSize, Font = self.Font,
 		AutoButtonColor = false, ClipsDescendants = true,
-		Size = UDim2.new(0, labelSize.X + 20, 1, 0), ZIndex = 3, MinSize = UDim2.new(0, 60, 0, 24),
+		Size = UDim2.new(0, labelSize.X + 20, 1, 0), ZIndex = 3,
 	}, Window.TabBar)
+	self:Create("UISizeConstraint", { MinSize = UDim2.new(0, 60, 0, 24) }, TabBtn)
 	self:AddToRegistry(TabBtn, { BackgroundColor3 = "BackgroundColor", TextColor3 = "TextColorSub" })
 	self:Create("UICorner", { CornerRadius = UDim.new(0, 6) }, TabBtn)
 	local Indicator = self:Create("Frame", {
@@ -554,15 +554,23 @@ function Library:WindowPage(Window, info)
 		Position = UDim2.new(0.5, 6, 0, 0), Size = UDim2.new(0.5, -12, 1, 0),
 		CanvasSize = UDim2.new(0, 0, 0, 0), ScrollBarThickness = 0, BorderSizePixel = 0, ZIndex = 3,
 	}, Frame)
-	self:Create("UIListLayout", {
+	local LeftLayout = self:Create("UIListLayout", {
 		FillDirection = Enum.FillDirection.Vertical, SortOrder = Enum.SortOrder.Name, Padding = UDim.new(0, 8),
 	}, LeftCol)
-	self:Create("UIListLayout", {
+	local RightLayout = self:Create("UIListLayout", {
 		FillDirection = Enum.FillDirection.Vertical, SortOrder = Enum.SortOrder.Name, Padding = UDim.new(0, 8),
 	}, RightCol)
-	local function syncCanvas(col) col.CanvasSize = UDim2.new(0, 0, 0, col.AbsoluteContentSize.Y + 8) end
-	LeftCol:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(syncCanvas)
-	RightCol:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(syncCanvas)
+	local function syncCanvas(col, layout)
+		col.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8)
+	end
+	local function connectCanvas(col, layout)
+		if not (col and layout) then return end
+		syncCanvas(col, layout)
+		local ok, sig = pcall(function() return layout:GetPropertyChangedSignal("AbsoluteContentSize") end)
+		if ok and sig then sig:Connect(function() syncCanvas(col, layout) end) end
+	end
+	connectCanvas(LeftCol, LeftLayout)
+	connectCanvas(RightCol, RightLayout)
 
 	Page.Frame = Frame
 	Page.TabBtn = TabBtn
@@ -597,8 +605,6 @@ function PageClass:Section(info)
 	local col = (tostring(info and info.Side or "Left"):lower():match("r") and self.RightCol or self.LeftCol)
 	return self.Library:Section(info, col, self.Window)
 end
-
-PageClass.Select = nil  -- assigned per-instance in WindowPage
 
 ------------------------------- Section ===============================
 local Section = {}      -- shared method table for Section instances
@@ -648,7 +654,10 @@ function Library:Section(info, colFrame, Window)
 		local h = Container.AbsoluteContentSize.Y
 		BoxOuter.Size = UDim2.new(1, 0, 0, h + 28 + 2)
 	end
-	List:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(resize)
+	local okResize, sigResize = pcall(function() return List:GetPropertyChangedSignal("AbsoluteContentSize") end)
+	if okResize and sigResize then
+		sigResize:Connect(resize)
+	end
 	-- initial sizing
 	task.spawn(function()
 		if Container:IsDescendantOf(game) then
