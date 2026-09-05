@@ -98,10 +98,11 @@ local Library = {
 
 	-- behaviour flags
 	UseBlur       = false,
-	NotifyOnError = false,
+	NotifyOnError = true,
 	ToggleKeybind = "RightControl",
 	SaveOnLoad    = false,
-	WarnOnError   = false,
+	WarnOnError   = true,
+	CopyErrorsToClipboard = true,
 	MinSize       = Vector2.new(480, 440),
 	WindowFade    = 0.18,
 
@@ -236,12 +237,26 @@ end
 function Library:SafeCallback(Callback, ...)
 	if type(Callback) ~= "function" then return end
 	local Result = table.pack(xpcall(Callback, function(Err)
-		if self.NotifyOnError then self:Toast(nil, "error", 4) end
-		if self.WarnOnError then warn("Callback error: " .. tostring(Err)) end
+		self:CaptureError(Err, "widget callback")
 		return Err
 	end, ...))
 	if not Result[1] then return nil, Result[2] end
 	return table.unpack(Result, 2, Result.n)
+end
+
+local Traceback = (debug and debug.traceback)
+	or function(msg, level) return tostring(msg) end
+
+function Library:CaptureError(Err, context)
+	local display = (context and (context .. ": ") or "") .. tostring(Err)
+	if self.NotifyOnError then self:Toast(display, "error", 10) end
+	if self.WarnOnError then warn(display .. "\n" .. Traceback("", 2)) end
+	if self.CopyErrorsToClipboard then
+		pcall(function()
+			if setclipboard then setclipboard(Traceback(display, 2)) end
+		end)
+	end
+	return display
 end
 
 function Library:GiveSignal(Signal)
@@ -1829,7 +1844,7 @@ end
 function Library:LoadConfig(configStr)
 	local ok, data = pcall(function() return HttpService:JSONDecode(configStr) end)
 	if not ok then
-		self:Toast(nil, "error", 4)
+		self:CaptureError(data, "LoadConfig")
 		return false
 	end
 	for pointer, value in pairs(data) do

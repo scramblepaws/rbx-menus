@@ -61,7 +61,7 @@ function SaveManager:Init(Library)
 		local autoload = self:GetAutoloadName()
 		if autoload then
 			local ok, err = pcall(function() self:Load(autoload, true) end)
-			if not ok and Library.NotifyOnError then Library:Toast(nil, "error", 2) end
+			if not ok then Library:CaptureError(err, "autoload config") end
 		end
 	end
 	return self
@@ -128,7 +128,7 @@ function SaveManager:Load(Name, suppressNotify)
 	local path = self:GetConfigFileName(Name)
 	local ok, content = pcall(readfile, path)
 	if not ok then
-		if not suppressNotify then self.Library:Toast(nil, "error", 3) end
+		if not suppressNotify and self.Library then self.Library:CaptureError(content, "readfile " .. path) end
 		return false
 	end
 	local decoded = HttpService:JSONDecode(content)
@@ -139,7 +139,9 @@ function SaveManager:Load(Name, suppressNotify)
 				local parser = self.Parser[entry.Type]
 				if parser and parser.Sync then
 					local success = pcall(parser.Sync, entry.Object, entry.Object, value)
-					if not success and self.Library.NotifyOnError then self.Library:Toast(nil, "error", 4) end
+					if not success then
+					if not suppressNotify and self.Library then self.Library:CaptureError("Sync failed for " .. tostring(pointer), "parser") end
+				end
 				else
 					entry.Set(value)
 				end
