@@ -26,6 +26,11 @@ local Library       = loadModule("lib/Library.lua")
 local SaveManager   = loadModule("lib/SaveManager.lua")
 local ThemeManager  = loadModule("lib/ThemeManager.lua")
 
+-- Color3.ToHex is a newer API; some executors lack it, so fall back locally.
+local function toHex(c)
+	return string.format("%02x%02x%02x", math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255))
+end
+
 -- Top-level guard: any error during setup is captured to the library's
 -- CaptureError (clipboard + visible toast + warn) so nothing is lost.
 local function build()
@@ -86,7 +91,7 @@ local function build()
 
 	Right:Colorpicker({Name = "Crosshair color", Pointer = "crosshairColor",
 		Default = Color3.fromRGB(0, 255, 0), Info = "in-game crosshair tint",
-		Callback = function(c) Library:Toast("Crosshair -> #"..c:ToHex(), "info", 2) end})
+		Callback = function(c) Library:Toast("Crosshair -> #"..toHex(c), "info", 2) end})
 
 	-- ---- Visual section -------------------------------------------------------
 	local VisLeft = Visual:Section({Name = "Rendering", Side = "Left"})
@@ -100,7 +105,7 @@ local function build()
 	VisLeft:Divider()
 	VisLeft:Label({Name = "misc"})
 	VisLeft:Colorpicker({Name = "Team color", Pointer = "teamColor", Default = Color3.fromRGB(80, 160, 255),
-		Callback = function(c) Library:Toast("Team color -> #"..c:ToHex(), "info", 2) end})
+		Callback = function(c) Library:Toast("Team color -> #"..toHex(c), "info", 2) end})
 
 	local VisRight = Visual:Section({Name = "World", Side = "Right"})
 	VisRight:Toggle({Name = "Show dropped weapons", Pointer = "weapons", Default = false})

@@ -195,4 +195,15 @@ function ThemeManager:CreateThemeManager(Section)
 	return self._ColorPickers
 end
 
+-- Refresh our live colorpicker swatches to reflect the current Library theme.
+-- We paint Swatch.BackgroundColor3 directly (NOT via SetValue) so we don't
+-- re-fire the colorpicker callback -> SetTheme -> ThemeUpdate -> ... recursion.
+function ThemeManager:ThemeUpdate()
+	for key, cp in pairs(self._ColorPickers or {}) do
+		if cp and cp.Swatch and typeof(self.Library[key]) == "Color3" then
+			cp.Swatch.BackgroundColor3 = self.Library[key]
+		end
+	end
+end
+
 return ThemeManager
