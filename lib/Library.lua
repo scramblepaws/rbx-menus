@@ -663,7 +663,6 @@ function Library:Section(info, colFrame, Window)
 	local List = self:Create("UIListLayout", {
 		FillDirection = Enum.FillDirection.Vertical, SortOrder = Enum.SortOrder.Name, Padding = UDim.new(0, 4),
 	}, Container)
-	Container.ListLayout = List
 
 	local function resize()
 		local h = Container.AbsoluteContentSize.Y
