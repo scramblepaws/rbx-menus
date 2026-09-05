@@ -22,9 +22,17 @@ ThemeManager.ThemeKeys = {
 	OutlineColor = "OutlineColor", InlineColor = "InlineColor", RiskColor = "RiskColor",
 }
 
+ThemeManager._DefaultFont = (function(...)
+	for _, name in ipairs({...}) do
+		local ok, f = pcall(function() return Enum.Font[name] end)
+		if ok and f then return f end
+	end
+	return Enum.Font.SourceSans
+end)("Gotham", "GothamBook", "GothamSemibold", "SourceSans")
+
 ThemeManager.BuiltInThemes = {
 	Dark = {
-		Font = Enum.Font.GothamBook, FontSize = 13, FontSizeSmall = 11,
+		Font = ThemeManager._DefaultFont, FontSize = 13, FontSizeSmall = 11,
 		TextColor = Color3.fromRGB(235, 235, 235), TextColorSub = Color3.fromRGB(170, 170, 180),
 		TextBorderColor = Color3.fromRGB(0, 0, 0), BackgroundColor = Color3.fromRGB(20, 20, 22),
 		MainColor = Color3.fromRGB(26, 26, 28), AccentColor = Color3.fromRGB(123, 43, 218),
@@ -32,7 +40,7 @@ ThemeManager.BuiltInThemes = {
 		InlineColor = Color3.fromRGB(45, 45, 47), RiskColor = Color3.fromRGB(255, 70, 70),
 	},
 	Light = {
-		Font = Enum.Font.GothamBook, FontSize = 13, FontSizeSmall = 11,
+		Font = ThemeManager._DefaultFont, FontSize = 13, FontSizeSmall = 11,
 		TextColor = Color3.fromRGB(30, 30, 30), TextColorSub = Color3.fromRGB(80, 80, 90),
 		TextBorderColor = Color3.fromRGB(0, 0, 0), BackgroundColor = Color3.fromRGB(240, 240, 242),
 		MainColor = Color3.fromRGB(232, 232, 234), AccentColor = Color3.fromRGB(90, 90, 200),
@@ -40,7 +48,7 @@ ThemeManager.BuiltInThemes = {
 		InlineColor = Color3.fromRGB(215, 215, 219), RiskColor = Color3.fromRGB(220, 60, 60),
 	},
 	Violet = {
-		Font = Enum.Font.GothamBook, FontSize = 13, FontSizeSmall = 11,
+		Font = ThemeManager._DefaultFont, FontSize = 13, FontSizeSmall = 11,
 		TextColor = Color3.fromRGB(240, 240, 250), TextColorSub = Color3.fromRGB(190, 190, 210),
 		TextBorderColor = Color3.fromRGB(0, 0, 0), BackgroundColor = Color3.fromRGB(18, 14, 24),
 		MainColor = Color3.fromRGB(26, 22, 32), AccentColor = Color3.fromRGB(160, 70, 230),

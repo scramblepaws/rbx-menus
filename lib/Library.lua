@@ -53,8 +53,17 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui   = LocalPlayer and (LocalPlayer:FindFirstChildOfClass("PlayerGui") or CoreGui)
 
 ------------------------------ Theme defaults ------------------------------
+local function resolveFont(...)
+	for _, name in ipairs({...}) do
+		local ok, f = pcall(function() return Enum.Font[name] end)
+		if ok and f then return f end
+	end
+	return Enum.Font.SourceSans
+end
+local DefaultFont = resolveFont("Gotham", "GothamBook", "GothamSemibold", "SourceSans")
+
 local Theme = {
-	Font            = Enum.Font.GothamBook,
+	Font            = DefaultFont,
 	FontSize        = 13,
 	FontSizeSmall   = 11,
 	TextColor       = Color3.fromRGB(235, 235, 235),
