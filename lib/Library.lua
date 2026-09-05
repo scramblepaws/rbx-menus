@@ -501,7 +501,7 @@ function Library:_attachWindowAPI(Window)
 	function Window:Initialize()        return Library:InitializeWindow(self) end
 	function Window:ToggleVisibility()  return Library:ToggleWindowVisibility(self) end
 	function Window:SetWindowTitle(t)   Library:SetWindowTitle(self, t) end
-	function Window:Toast(m, s, d)      return Library:Toast(self, m, s, d) end
+ 	function Window:Toast(m, s, d)      return Library:Toast(m, s, d) end
 	function Window:SetWatermark(b)     Library:SetWatermark(self, b) end
 	function Window:SetStats(b)         Library:SetStats(self, b) end
 	function Window:ToggleKeybindsList() Library:ToggleKeybindsList(self) end
@@ -515,13 +515,13 @@ end
 function Library:WindowPage(Window, info)
 	info = info or {}
 	local Name = info.Name or "Page"
-	local Page = {
+	local Page = setmetatable({
 		Window    = Window,
 		Library   = self,
 		Name      = Name,
 		Index     = #Window.Pages,
 		Frame     = nil,
-	}
+	}, PageClass)
 
 	local labelSize = self:GetTextBounds(Name, self.Font, self.FontSize + 1)
 	local TabBtn = self:Create("TextButton", {
@@ -591,10 +591,14 @@ function Library:WindowPage(Window, info)
 	return Page
 end
 
-function Page:Section(info)
+local PageClass = {}
+PageClass.__index = PageClass
+function PageClass:Section(info)
 	local col = (tostring(info and info.Side or "Left"):lower():match("r") and self.RightCol or self.LeftCol)
 	return self.Library:Section(info, col, self.Window)
 end
+
+PageClass.Select = nil  -- assigned per-instance in WindowPage
 
 ------------------------------- Section ===============================
 local Section = {}      -- shared method table for Section instances
@@ -1486,7 +1490,7 @@ Library:GiveSignal(UserInputService.InputBegan:Connect(function(Input, GameProce
 end))
 
 ------------------------------- Window extras ===============================
-function Library:Toast(Window, message, style, duration)
+function Library:Toast(message, style, duration)
 	if not self._ScreenGui then return end
 	return self.toasts:Add(message, style, duration)
 end

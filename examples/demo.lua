@@ -7,8 +7,19 @@
 --]]
 local BASE = "https://raw.githubusercontent.com/scramblepaws/rbx-menus/main"
 
+-- Load a library module. Prefers a local readfile (offline/dev), falls back
+-- to HttpGet so the same script works in an executor with network access.
 local function loadModule(rel)
-	return loadstring(game:HttpGet(BASE .. "/" .. rel))()
+	local content
+	if readfile then
+		local ok, r = pcall(readfile, rel)
+		if ok and r then content = r end
+	end
+	if not content and game.HttpGet then
+		content = game:HttpGet(BASE .. "/" .. rel)
+	end
+	assert(content, "loadModule: could not load " .. rel .. " (try readfile or set BASE)")
+	return loadstring(content)()
 end
 
 local Library       = loadModule("lib/Library.lua")

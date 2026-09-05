@@ -24,6 +24,10 @@ local function hexToColor(h)
 	return Color3.fromRGB(r or 0, g or 0, b or 0)
 end
 
+local function resolveLibrary()
+	return _G.Library or (typeof(getgenv) == "function" and getgenv().Library)
+end
+
 local SaveManager = {
 	-- executor-provided filesystem APIs (nil on vanilla Studio)
 	ConfigFile = nil,
@@ -89,24 +93,39 @@ function SaveManager:BuildSaveTable()
 end
 
 function SaveManager:Save(Name)
-	if not self.Library then self:Init(_G.Library or getgenv().Library) end
+	if not self.Library then self:Init(resolveLibrary()) end
 	self:ConfigureFolders()
 	if not Name or Name == "" then Name = self.ConfigFile or "config" end
 	local data = self:BuildSaveTable()
-	local json = HttpService:JSONEncode(data)
-	assert(writefile, "SaveManager:Save requires an executor with writefile")
-	writefile(self:GetConfigFileName(Name), json)
+	local json
+	local ok, enc = pcall(function() return HttpService:JSONEncode(data) end)
+	if ok then json = enc end
+	if not writefile then
+		if self.Library then self.Library:Toast("Save requires an executor with writefile", "error", 2) end
+		return false, nil
+	end
+	local wok, werr = pcall(function() writefile(self:GetConfigFileName(Name), json or "{}") end)
+	if not wok then
+		if self.Library then self.Library:Toast("Save failed: " .. tostring(werr), "error", 2) end
+		return false, nil
+	end
 	self.ConfigFile = Name
 	self:SetAutoloadName(Name)
 	return true, Name
 end
 
 function SaveManager:Load(Name, suppressNotify)
-	if not self.Library then self:Init(_G.Library or getgenv().Library) end
+	if not self.Library then self:Init(resolveLibrary()) end
 	if not Name or Name == "" then Name = self.ConfigFile end
-	assert(Name, "SaveManager:Load called without a config name")
+	if not Name then
+		if not suppressNotify and self.Library then self.Library:Toast("No config selected.", "warn", 2) end
+		return false
+	end
+	if not readfile then
+		if not suppressNotify and self.Library then self.Library:Toast("Load requires an executor with readfile", "error", 2) end
+		return false
+	end
 	local path = self:GetConfigFileName(Name)
-	assert(readfile, "SaveManager:Load requires an executor with readfile")
 	local ok, content = pcall(readfile, path)
 	if not ok then
 		if not suppressNotify then self.Library:Toast(nil, "error", 3) end
@@ -137,7 +156,7 @@ function SaveManager:Delete(Name)
 	self:ConfigureFolders()
 	if not Name or Name == "" then Name = self.ConfigFile end
 	if not Name then return false end
-	assert(delfile, "SaveManager:Delete requires an executor with delfile")
+	if not delfile then return false end
 	local path = self:GetConfigFileName(Name)
 	if listfiles then
 		local ok, _ = pcall(readfile, path)
