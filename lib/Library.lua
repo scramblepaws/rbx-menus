@@ -582,17 +582,37 @@ function Library:WindowPage(Window, info)
 	local RightLayout = self:Create("UIListLayout", {
 		FillDirection = Enum.FillDirection.Vertical, SortOrder = Enum.SortOrder.Name, Padding = UDim.new(0, 8),
 	}, RightCol)
-	local function syncCanvas(col, layout)
-		col.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8)
+	-- Auto-size each column's CanvasSize to fit its sections. Some executors
+	-- (e.g. Potassium) do not expose `UIListLayout.AbsoluteContentSize` or its
+	-- property-changed signal, so we sum child AbsoluteSize.Y and listen to a
+	-- universally-valid signal: each child's `Size` (sections resize their
+	-- own GroupBox) plus ChildAdded/ChildRemoved on the column.
+	local function syncCanvas(col)
+		if not col then return end
+		local h, n = 0, 0
+		local layout = col:FindFirstChildWhichIsA("UIListLayout")
+		for _, child in ipairs(col:GetChildren()) do
+			if child:IsA("GuiObject") then
+				local ay = child.AbsoluteSize.Y
+				if ay and ay > 0 then h, n = h + ay, n + 1 end
+			end
+		end
+		local pad = 0
+		if layout and layout.Padding then pad = (layout.Padding.Offset or 0) * math.max(n - 1, 0) end
+		col.CanvasSize = UDim2.new(0, 0, 0, h + pad + 16)
 	end
-	local function connectCanvas(col, layout)
-		if not (col and layout) then return end
-		syncCanvas(col, layout)
-		local ok, sig = pcall(function() return layout:GetPropertyChangedSignal("AbsoluteContentSize") end)
-		if ok and sig then sig:Connect(function() syncCanvas(col, layout) end) end
+	local function watchChild(child, col)
+		if not (child and child:IsA("GuiObject")) then return end
+		local ok, sig = pcall(function() return child:GetPropertyChangedSignal("Size") end)
+		if ok and sig then self:GiveSignal(sig:Connect(function() syncCanvas(col) end)) end
 	end
-	connectCanvas(LeftCol, LeftLayout)
-	connectCanvas(RightCol, RightLayout)
+	local function connectCanvas(col)
+		syncCanvas(col)
+		self:GiveSignal(col.ChildAdded:Connect(function(c) watchChild(c, col); syncCanvas(col) end))
+		self:GiveSignal(col.ChildRemoved:Connect(function() syncCanvas(col) end))
+	end
+	connectCanvas(LeftCol)
+	connectCanvas(RightCol)
 
 	Page.Frame = Frame
 	Page.TabBtn = TabBtn
@@ -664,18 +684,33 @@ function Library:Section(info, colFrame, Window)
 		FillDirection = Enum.FillDirection.Vertical, SortOrder = Enum.SortOrder.Name, Padding = UDim.new(0, 4),
 	}, Container)
 
+	-- Auto-size the GroupBox to fit its rows. Some executors (e.g. Potassium)
+	-- do NOT expose `GuiObject.AbsoluteContentSize` (or its layout signal), so we
+	-- measure content by summing child rows' AbsoluteSize.Y -- a core GuiObject
+	-- property that exists in every Roblox/Luau surface.
 	local function resize()
-		local h = Container.AbsoluteContentSize.Y
-		BoxOuter.Size = UDim2.new(1, 0, 0, h + 28 + 2)
+		local h, n = 0, 0
+		for _, child in ipairs(Container:GetChildren()) do
+			if child:IsA("GuiObject") then
+				local ay = child.AbsoluteSize.Y
+				if ay and ay > 0 then h, n = h + ay, n + 1 end
+			end
+		end
+		local pad = 0
+		if List and List.Padding then pad = (List.Padding.Offset or 0) * math.max(n - 1, 0) end
+		BoxOuter.Size = UDim2.new(1, 0, 0, h + pad + 28 + 2)
 	end
-	local okResize, sigResize = pcall(function() return List:GetPropertyChangedSignal("AbsoluteContentSize") end)
-	if okResize and sigResize then
-		sigResize:Connect(resize)
+	-- prefer the layout signal; fall back to child events when the signal is absent
+	local okSignal, sig = pcall(function() return List:GetPropertyChangedSignal("AbsoluteContentSize") end)
+	if okSignal and sig then
+		sig:Connect(resize)
+	else
+		self.Library:GiveSignal(Container.ChildAdded:Connect(resize))
+		self.Library:GiveSignal(Container.ChildRemoved:Connect(resize))
 	end
-	-- initial sizing
+	-- initial sizing (deferred so AbsoluteSizes are computed)
 	task.spawn(function()
 		if Container:IsDescendantOf(game) then
-			local _, e = pcall(function() return Container.AbsoluteContentSize.Y end)
 			resize()
 		end
 	end)
