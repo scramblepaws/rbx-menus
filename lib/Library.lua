@@ -511,6 +511,13 @@ function Library:_attachWindowAPI(Window)
 end
 
 ------------------------------- Page ===============================
+local PageClass = {}
+PageClass.__index = PageClass
+function PageClass:Section(info)
+	local col = (tostring(info and info.Side or "Left"):lower():match("r") and self.RightCol or self.LeftCol)
+	return self.Library:Section(info, col, self.Window)
+end
+
 function Library:WindowPage(Window, info)
 	info = info or {}
 	local Name = info.Name or "Page"
@@ -530,7 +537,7 @@ function Library:WindowPage(Window, info)
 		AutoButtonColor = false, ClipsDescendants = true,
 		Size = UDim2.new(0, labelSize.X + 20, 1, 0), ZIndex = 3,
 	}, Window.TabBar)
-	self:Create("UISizeConstraint", { MinSize = UDim2.new(0, 60, 0, 24) }, TabBtn)
+	self:Create("UISizeConstraint", { MinSize = Vector2.new(60, 24) }, TabBtn)
 	self:AddToRegistry(TabBtn, { BackgroundColor3 = "BackgroundColor", TextColor3 = "TextColorSub" })
 	self:Create("UICorner", { CornerRadius = UDim.new(0, 6) }, TabBtn)
 	local Indicator = self:Create("Frame", {
@@ -597,13 +604,6 @@ function Library:WindowPage(Window, info)
 	if #Window.Pages == 1 then select() end
 
 	return Page
-end
-
-local PageClass = {}
-PageClass.__index = PageClass
-function PageClass:Section(info)
-	local col = (tostring(info and info.Side or "Left"):lower():match("r") and self.RightCol or self.LeftCol)
-	return self.Library:Section(info, col, self.Window)
 end
 
 ------------------------------- Section ===============================
