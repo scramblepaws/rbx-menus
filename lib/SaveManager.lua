@@ -39,7 +39,16 @@ local SaveManager = {
 		Button     = { Parse = function(self, self2) return nil end, Sync = function(self, self2, v) end },
 		Dropdown   = { Parse = function(self, self2) return self.Value end, Sync = function(self, self2, v) self:SetValue(v) end },
 		Multibox   = { Parse = function(self, self2) return self.Value end, Sync = function(self, self2, v) self:SetValue(v) end },
-		Keybind    = { Parse = function(self, self2) return self.Value.Name end, Sync = function(self, self2, v) if type(v) == "string" then v = Enum.KeyCode.FromString(v) or Enum.KeyCode.E end; self:SetValue(v) end },
+		Keybind    = { Parse = function(self, self2) return self.Value.Name end, Sync = function(self, self2, v)
+				if typeof(v) == "EnumItem" and v.EnumType == Enum.KeyCode then
+					-- already an EnumItem
+				elseif type(v) == "string" then
+					v = (self.Library and self.Library.ResolveKeyCode and self.Library.ResolveKeyCode(v)) or Enum.KeyCode.E
+				else
+					v = Enum.KeyCode.E
+				end
+				self:SetValue(v)
+			end },
 		Colorpicker= { Parse = function(self, self2) local c = self.Value; return {Color = colorToHex(c.Color), Transparency = tonumber(c.Transparency) or 1} end,
 		               Sync = function(self, self2, v) if type(v) == "table" then self:SetValue(hexToColor(v.Color), tonumber(v.Transparency) or 1) else self:SetValue(hexToColor(v), 1) end end },
 		Input      = { Parse = function(self, self2) return self.Value end, Sync = function(self, self2, v) self:SetValue(v) end },
@@ -138,10 +147,10 @@ function SaveManager:Load(Name, suppressNotify)
 			if entry then
 				local parser = self.Parser[entry.Type]
 				if parser and parser.Sync then
-					local success = pcall(parser.Sync, entry.Object, entry.Object, value)
+					local success, err = pcall(parser.Sync, entry.Object, entry.Object, value)
 					if not success then
-					if not suppressNotify and self.Library then self.Library:CaptureError("Sync failed for " .. tostring(pointer), "parser") end
-				end
+						if not suppressNotify and self.Library then self.Library:CaptureError("Sync failed for " .. tostring(pointer) .. ": " .. tostring(err), "parser") end
+					end
 				else
 					entry.Set(value)
 				end

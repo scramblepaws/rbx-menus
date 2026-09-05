@@ -1210,6 +1210,20 @@ function Section:Multibox(info)
 end
 
 -- ===== Keybind =====
+-- Some executors lack `Enum.KeyCode.FromString`; `Enum.KeyCode[name]` works via
+-- the Enum's string indexer and is universally supported. Fall back to E.
+local function resolveKeyCode(name)
+	if typeof(name) ~= "string" then return nil end
+	local enum = Enum.KeyCode
+	if not enum then return nil end
+	local ok, item = pcall(function() return enum[name] end)
+	if ok and item and typeof(item) == "EnumItem" then return item end
+	ok, item = pcall(function() return enum.FromString(name) end)
+	if ok and item and typeof(item) == "EnumItem" then return item end
+	return nil
+end
+Library.ResolveKeyCode = resolveKeyCode
+
 function Section:Keybind(info)
 	info = info or {}
 	local text         = info.Name or info.Text or "Keybind"
@@ -1217,7 +1231,7 @@ function Section:Keybind(info)
 	local mode         = info.Mode or "Toggle"   -- Hold | Toggle | Always
 	local default      = info.Default or Enum.KeyCode.E
 	if typeof(default) == "string" then
-		default = Enum.KeyCode.FromString(default) or Enum.KeyCode.E
+		default = resolveKeyCode(default) or Enum.KeyCode.E
 	end
 	local pointer     = info.Pointer or info.pointer
 	local callback     = info.Callback or function() end
@@ -1308,7 +1322,7 @@ function Section:Keybind(info)
 		Mode = mode, Pressed = pressed,
 	}, Widget)
 	function Widget:SetValue(KeyCode)
-		if type(KeyCode) == "string" then KeyCode = Enum.KeyCode.FromString(KeyCode) or KeyCode end
+		if type(KeyCode) == "string" then KeyCode = resolveKeyCode(KeyCode) or KeyCode end
 		currentKey = KeyCode
 		updateText()
 		if self.Library.keybindslist then self.Library.keybindslist:Update() end
@@ -1860,7 +1874,7 @@ local function applyValue(entry, value)
 		if type(c) == "string" then c = hexToColor(c) end
 		if obj.SetValue then obj:SetValue(c, a) else entry.Set(value) end
 	elseif t == "Keybind" then
-		if type(value) == "string" then value = (Enum.KeyCode.FromString(value) or Enum.KeyCode.E) end
+		if type(value) == "string" then value = (resolveKeyCode(value) or Enum.KeyCode.E) end
 		if obj.SetValue then obj:SetValue(value) else entry.Set(value) end
 	elseif t == "Toggle" or t == "Slider" or t == "Dropdown" or t == "Multibox" or t == "Input" then
 		if obj.SetValue then obj:SetValue(value) else entry.Set(value) end
