@@ -60,7 +60,7 @@ if not SOURCE then
     print("[MollyUi Clean] Step 1: ALL FETCH ATTEMPTS FAILED. Last error: " .. tostring(step1_error))
 end
 
---// Step 2: Compile + run source
+--// Step 2: Load the source via loadstring
 print("[MollyUi Clean] Step 2: loadstring...")
 local LIBRARY = nil
 local UTILITY = nil
@@ -68,29 +68,70 @@ local POINTERS = nil
 local THEME = nil
 local hasLoadstring = type(loadstring) == "function"
 print("[MollyUi Clean] Step 2: loadstring available = " .. tostring(hasLoadstring))
-if SOURCE and hasLoadstring then
-    local step2a_ok, step2a_chunk = pcall(loadstring, SOURCE)
-    if step2a_ok and type(step2a_chunk) == "function" then
-        print("[MollyUi Clean] Step 2a OK: compiled chunk is a function")
-        local step2b_results = {pcall(step2a_chunk)}
-        local step2b_ok = step2b_results[1]
-        print("[MollyUi Clean] Step 2b run: ok=" .. tostring(step2b_ok))
-        if step2b_ok then
-            LIBRARY = step2b_results[2]
-            UTILITY = step2b_results[3]
-            POINTERS = step2b_results[4]
-            THEME = step2b_results[5]
-            local b_hasNew = false
-            if LIBRARY and type(LIBRARY) == "table" and LIBRARY.New then b_hasNew = true end
-            print("[MollyUi Clean] Step 2b OK: library type=" .. type(LIBRARY) .. " | has New=" .. tostring(b_hasNew))
-        else
-            print("[MollyUi Clean] Step 2b FAILED: " .. tostring(step2b_results[2]))
+
+if hasLoadstring and SOURCE then
+    -- Potassium: loadstring on a stored string variable returns nil as the chunk.
+    -- Use the one-liner pattern loadstring(game:HttpGet(url))() instead, which works.
+    local loadUrls = {
+        "https://raw.githubusercontent.com/scramblepaws/rbx-menus/main/MollyUi%20Source.lua",
+        "https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/MollyUi%20Source.lua",
+    }
+    for i, url in ipairs(loadUrls) do
+        print("[MollyUi Clean] Step 2 trying one-liner URL " .. i .. " via game:HttpGet...")
+        local loadOk, loadResult = pcall(function()
+            local chunk = loadstring(game:HttpGet(url))
+            if chunk then
+                return chunk()
+            end
+            return nil
+        end)
+        print("[MollyUi Clean] Step 2 one-liner " .. i .. ": ok=" .. tostring(loadOk) .. " resultType=" .. type(loadResult))
+        if loadOk and loadResult and type(loadResult) == "table" then
+            LIBRARY = loadResult
+            print("[MollyUi Clean] Step 2 one-liner " .. i .. " OK: got library table")
+            break
+        elseif loadOk and loadResult == nil then
+            print("[MollyUi Clean] Step 2 one-liner " .. i .. ": loadstring returned nil chunk")
+        elseif not loadOk then
+            print("[MollyUi Clean] Step 2 one-liner " .. i .. " FAILED: " .. tostring(loadResult))
         end
-    else
-        print("[MollyUi Clean] Step 2a FAILED: compileOk=" .. tostring(step2a_ok) .. " chunkType=" .. type(step2a_chunk))
     end
-else
-    print("[MollyUi Clean] Step 2 SKIPPED: no source or no loadstring")
+end
+
+if not LIBRARY and hasLoadstring and SOURCE then
+    -- Fallback: try loadstring(SOURCE) directly and inspect ALL return values
+    print("[MollyUi Clean] Step 2: trying direct loadstring(SOURCE)...")
+    local directResults = {pcall(loadstring, SOURCE)}
+    local directOk = directResults[1]
+    print("[MollyUi Clean] Step 2 direct: ok=" .. tostring(directOk) .. " nresults=" .. #directResults)
+    for idx = 2, #directResults do
+        print("[MollyUi Clean] Step 2 direct result[" .. idx .. "]: type=" .. type(directResults[idx]) .. " val=" .. tostring(directResults[idx]))
+    end
+    if directOk then
+        for idx = 2, #directResults do
+            local v = directResults[idx]
+            if type(v) == "function" then
+                print("[MollyUi Clean] Step 2 found chunk function at result[" .. idx .. "]")
+                local runOk, runResults = pcall(v)
+                print("[MollyUi Clean] Step 2 run: ok=" .. tostring(runOk))
+                if runOk then
+                    LIBRARY = runResults
+                    print("[MollyUi Clean] Step 2: library type=" .. type(LIBRARY))
+                else
+                    print("[MollyUi Clean] Step 2 run FAILED: " .. tostring(runResults))
+                end
+                break
+            elseif type(v) == "table" then
+                LIBRARY = v
+                print("[MollyUi Clean] Step 2: got table directly at result[" .. idx .. "]")
+                break
+            end
+        end
+    end
+end
+
+if not LIBRARY then
+    print("[MollyUi Clean] Step 2: FAILED to load library via any method")
 end
 
 if not LIBRARY or not (type(LIBRARY) == "table") then
