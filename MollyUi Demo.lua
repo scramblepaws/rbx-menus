@@ -1,48 +1,90 @@
 -- // MollyUi Demo Script
--- // Load the MollyUi library: local file first, remote GitHub fallback
+-- // Load the MollyUi library (Potassium-compatible: multiple fallback strategies)
 local MollyUi = nil
+local loadError = nil
 
--- Attempt 1: load from local file (executor-dependent: readfile)
-do
-    local ok, source = pcall(function()
-        return readfile("MollyUi Source.lua")
-    end)
-    if ok and typeof(source) == "string" and #source > 0 then
-        local loadOk, lib = pcall(function()
-            return loadstring(source)()
-        end)
-        if loadOk and lib then
+-- Helper: compile source string to a chunk, then invoke it and return the library table
+local function tryLoadString(source)
+    if not source or typeof(source) ~= "string" or #source == 0 then
+        return nil
+    end
+    if not loadstring then
+        return nil
+    end
+    -- Step 1: compile the source into a chunk function
+    local compileOk, chunk = pcall(loadstring, source)
+    if not compileOk or not chunk or typeof(chunk) ~= "function" then
+        return nil
+    end
+    -- Step 2: invoke the chunk and grab the library (first return)
+    local runOk, lib = pcall(chunk)
+    if runOk and lib and typeof(lib) == "table" then
+        return lib
+    end
+    return nil
+end
+
+-- Attempt 0: loadfile (Lua standard — reads + compiles from file path in one call)
+if not MollyUi then
+    local ok, chunk = pcall(loadfile, "MollyUi Source.lua")
+    if ok and chunk and typeof(chunk) == "function" then
+        local runOk, lib = pcall(chunk)
+        if runOk and lib and typeof(lib) == "table" then
             MollyUi = lib
+        else
+            loadError = runOk and "loadfile run returned non-table" or tostring(lib)
         end
+    else
+        loadError = ok and "loadfile failed" or tostring(chunk)
     end
 end
 
--- Attempt 2: remote GitHub (HttpService)
+-- Attempt 1: readfile + loadstring
 if not MollyUi then
-    local ok, source = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/MollyUi%20Source.lua")
-    end)
-    if ok and typeof(source) == "string" and #source > 0 then
-        local loadOk, lib = pcall(function()
-            return loadstring(source)()
-        end)
-        if loadOk and lib then
-            MollyUi = lib
+    local ok, result = pcall(readfile, "MollyUi Source.lua")
+    if ok and typeof(result) == "string" and result:sub(1, 2) == "--" then
+        MollyUi = tryLoadString(result)
+        if not MollyUi then
+            loadError = "readfile+loadstring failed"
         end
     else
-        -- HttpService fallback via HttpService:GetAsync
-        local httpOk, httpSource = pcall(function()
-            return game:GetService("HttpService"):GetAsync("https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/MollyUi%20Source.lua")
-        end)
-        if httpOk and typeof(httpSource) == "string" and #httpSource > 0 then
-            local loadOk, lib = pcall(function()
-                return loadstring(httpSource)()
-            end)
-            if loadOk and lib then
-                MollyUi = lib
-            end
-        end
+        loadError = ok and "readfile returned non-source" or tostring(result)
     end
+end
+
+-- Attempt 2: HttpService:GetAsync + loadstring (canonical Roblox HTTP)
+if not MollyUi then
+    local ok, result = pcall(function()
+        return game:GetService("HttpService"):GetAsync("https://raw.githubusercontent.com/scramblepaws/rbx-menus/main/MollyUi%20Source.lua")
+    end)
+    if ok and typeof(result) == "string" and result:sub(1, 2) == "--" then
+        MollyUi = tryLoadString(result)
+        if not MollyUi then
+            loadError = "HTTP+loadstring failed"
+        end
+    else
+        loadError = ok and "HTTP fetch returned non-source" or tostring(result)
+    end
+end
+
+-- Attempt 3: game:HttpGet + loadstring (executor convenience wrapper, if present)
+if not MollyUi and game.HttpGet then
+    local ok, result = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/scramblepaws/rbx-menus/main/MollyUi%20Source.lua")
+    end)
+    if ok and typeof(result) == "string" and result:sub(1, 2) == "--" then
+        MollyUi = tryLoadString(result)
+        if not MollyUi then
+            loadError = "game:HttpGet+loadstring failed"
+        end
+    else
+        loadError = ok and "game:HttpGet returned non-source" or tostring(result)
+    end
+end
+
+-- Silent abort if library failed to load (anti-cheat: never expose loader failure to console)
+if not MollyUi then
+    return
 end
 
 -- // Create the main window
