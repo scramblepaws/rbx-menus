@@ -1628,7 +1628,9 @@ do
         
         section.currentAxis = section.currentAxis + 15 + 4
         section:Update()
-        
+
+        return toggle
+
         function toggle:Colorpicker(info)
             local info = info or {}
             local cpinfo = info.info or info.Info or name
@@ -2712,8 +2714,10 @@ do
             end
         end
         
-        section.currentAxis = section.currentAxis + 20 + 4
+        section.currentAxis = section.currentAxis + 15 + 4
         section:Update()
+
+        return toggle
     end
     
     function sections:Dropdown(info)
