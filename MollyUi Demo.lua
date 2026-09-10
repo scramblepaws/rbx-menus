@@ -1,6 +1,49 @@
 -- // MollyUi Demo Script
--- // Load the MollyUi library from GitHub
-local MollyUi = loadstring(game:HttpGet("https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/MollyUi%20Source.lua"))()
+-- // Load the MollyUi library: local file first, remote GitHub fallback
+local MollyUi = nil
+
+-- Attempt 1: load from local file (executor-dependent: readfile)
+do
+    local ok, source = pcall(function()
+        return readfile("MollyUi Source.lua")
+    end)
+    if ok and typeof(source) == "string" and #source > 0 then
+        local loadOk, lib = pcall(function()
+            return loadstring(source)()
+        end)
+        if loadOk and lib then
+            MollyUi = lib
+        end
+    end
+end
+
+-- Attempt 2: remote GitHub (HttpService)
+if not MollyUi then
+    local ok, source = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/MollyUi%20Source.lua")
+    end)
+    if ok and typeof(source) == "string" and #source > 0 then
+        local loadOk, lib = pcall(function()
+            return loadstring(source)()
+        end)
+        if loadOk and lib then
+            MollyUi = lib
+        end
+    else
+        -- HttpService fallback via HttpService:GetAsync
+        local httpOk, httpSource = pcall(function()
+            return game:GetService("HttpService"):GetAsync("https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/MollyUi%20Source.lua")
+        end)
+        if httpOk and typeof(httpSource) == "string" and #httpSource > 0 then
+            local loadOk, lib = pcall(function()
+                return loadstring(httpSource)()
+            end)
+            if loadOk and lib then
+                MollyUi = lib
+            end
+        end
+    end
+end
 
 -- // Create the main window
 local Window = MollyUi:New({
