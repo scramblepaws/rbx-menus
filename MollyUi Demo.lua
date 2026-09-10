@@ -1,6 +1,6 @@
 -- // MollyUi Demo Script
--- // Load the MollyUi library
-local MollyUi = loadstring(readfile("MollyUi Source.lua"))()
+-- // Load the MollyUi library from GitHub
+local MollyUi = loadstring(game:HttpGet("https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/MollyUi%20Source.lua"))()
 
 -- // Create the main window
 local Window = MollyUi:New({
