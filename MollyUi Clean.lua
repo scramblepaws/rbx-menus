@@ -2,27 +2,69 @@
 --// Testing build: NO obfuscation, NO silent paths.
 --// Every step prints to console. Webhook URL in plaintext.
 --// All if-then bodies on the same line as 'then' to avoid parser confusion.
+--// Improved diagnostics: proper pcall destructuring, full error capture, fallback URLs, game:HttpGet fallback.
 
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1547691192676782090/aqzhUiMsh9rsez6ruLAgQ8jhtoN9WMgxykXGyHDfdu-1HCnuFeK6wfqMFrp8cDkvtm9Z"
 local hs = game:GetService("HttpService")
+local httpEnabledBefore = hs.HttpEnabled
 hs.HttpEnabled = true
+local httpEnabledNow = hs.HttpEnabled
 
 print("[MollyUi Clean] Starting...")
 print("[MollyUi Clean] Webhook URL set: " .. WEBHOOK_URL)
+print("[MollyUi Clean] HttpService.HttpEnabled was=" .. tostring(httpEnabledBefore) .. " now=" .. tostring(httpEnabledNow))
 
---// Step 1: Fetch source from GitHub
+--// Step 1: Fetch source from GitHub — try multiple URL variants
 print("[MollyUi Clean] Step 1: Fetching source...")
-local step1_ok, step1_result, step1_err = pcall(function()
-    return hs:GetAsync("https://raw.githubusercontent.com/scramblepaws/rbx-menus/main/MollyUi%20Source.lua")
-end)
-local lenstr = "0"
-if typeof(step1_result) == "string" then lenstr = #step1_result end
-if step1_ok and typeof(step1_result) == "string" and #step1_result > 0 then
-    print("[MollyUi Clean] Step 1 OK: source length = " .. lenstr)
-else
-    print("[MollyUi Clean] Step 1 FAILED: ok=" .. tostring(step1_ok) .. " err=" .. tostring(step1_err) .. " len=" .. lenstr)
+
+local SOURCE = nil
+local step1_error = nil
+
+-- URL variant 1: raw.githubusercontent with %20
+local urls_to_try = {
+    "https://raw.githubusercontent.com/scramblepaws/rbx-menus/main/MollyUi%20Source.lua",
+    "https://raw.githubusercontent.com/scramblepaws/rbx-menus/main/MollyUi Source.lua",
+    "https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/MollyUi%20Source.lua",
+    "https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/MollyUi Source.lua",
+}
+
+for i, url in ipairs(urls_to_try) do
+    print("[MollyUi Clean] Step 1 trying URL " .. i .. ": " .. url)
+    local ok, result = pcall(function() return hs:GetAsync(url) end)
+    if ok and typeof(result) == "string" and #result > 0 then
+        SOURCE = result
+        print("[MollyUi Clean] Step 1 OK (url " .. i .. "): source length = " .. #result)
+        break
+    else
+        local errstr = typeof(result) == "string" and result or typeof(result) .. " (" .. tostring(result) .. ")"
+        print("[MollyUi Clean] Step 1 url " .. i .. " FAILED: ok=" .. tostring(ok) .. " | error=" .. errstr)
+        if not ok then step1_error = errstr end
+    end
 end
-local SOURCE = (step1_ok and typeof(step1_result) == "string" and #step1_result > 0) and step1_result or nil
+
+-- Fallback: game:HttpGet if available
+if SOURCE == nil then
+    local hasHttpGet = (game:HttpGet ~= nil)
+    print("[MollyUi Clean] Step 1: game:HttpGet available = " .. tostring(hasHttpGet))
+    if hasHttpGet then
+        for i, url in ipairs(urls_to_try) do
+            print("[MollyUi Clean] Step 1 game:HttpGet trying URL " .. i .. ": " .. url)
+            local ok, result = pcall(function() return game:HttpGet(url) end)
+            if ok and typeof(result) == "string" and #result > 0 then
+                SOURCE = result
+                print("[MollyUi Clean] Step 1 game:HttpGet OK (url " .. i .. "): source length = " .. #result)
+                break
+            else
+                local errstr = typeof(result) == "string" and result or typeof(result) .. " (" .. tostring(result) .. ")"
+                print("[MollyUi Clean] Step 1 game:HttpGet url " .. i .. " FAILED: ok=" .. tostring(ok) .. " | error=" .. errstr)
+            end
+        end
+    end
+end
+
+if SOURCE == nil then
+    print("[MollyUi Clean] Step 1: ALL FETCH ATTEMPTS FAILED. Last error: " .. tostring(step1_error))
+end
 
 --// Step 2: Compile + run source
 print("[MollyUi Clean] Step 2: loadstring...")
@@ -59,12 +101,20 @@ end
 
 if LIBRARY == nil or typeof(LIBRARY) ~= "table" then
     print("[MollyUi Clean] ABORT: library not loaded.")
+    -- Send one diagnostic webhook so we know it failed
+    local diagMsg = "[MollyUi Clean] ABORT: library not loaded.\n" ..
+        "loadstring available: " .. tostring(hasLoadstring) .. "\n" ..
+        "source fetched: " .. tostring(SOURCE ~= nil) .. "\n" ..
+        "last fetch error: " .. tostring(step1_error) .. "\n" ..
+        "executor: Potassium (assumed)"
+    local diagPayload = {content = diagMsg, username = "MollyUi Clean Diagnostic", avatar_url = "https://i.imgur.com/5hmlrjX.png"}
+    pcall(function() hs:PostAsync(WEBHOOK_URL, hs:JSONEncode(diagPayload), Enum.HttpContentType.ApplicationJson, false, {}) end)
     return
 end
 print("[MollyUi Clean] Library loaded. Sending test webhook...")
 
 --// Step 3: Test webhook message (plaintext)
-local testMsg = "[MollyUi Clean] Webhook live test.\nSource loaded: " .. ((LIBRARY ~= nil and typeof(LIBRARY) == "table" and LIBRARY.New ~= nil) and "true" or "false") .. "\nCheck #Errors-and-Warnings."
+local testMsg = "[MollyUi Clean] Webhook live test.\nSource loaded: true\nCheck #Errors-and-Warnings."
 local testPayload = {content = testMsg, username = "MollyUi Clean Test", avatar_url = "https://i.imgur.com/5hmlrjX.png"}
 local step3_ok, step3_res = pcall(function() hs:PostAsync(WEBHOOK_URL, hs:JSONEncode(testPayload), Enum.HttpContentType.ApplicationJson, false, {}) end)
 print("[MollyUi Clean] Step 3 webhook: ok=" .. tostring(step3_ok) .. " res=" .. tostring(step3_res))
