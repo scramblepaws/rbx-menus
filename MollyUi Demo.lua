@@ -1,7 +1,6 @@
 -- // MollyUi Demo Script
--- // Load the MollyUi library (Potassium-compatible: multiple fallback strategies)
+-- // Load the MollyUi library (Potassium: HttpService-first, silent abort with webhook clue)
 local MollyUi = nil
-local loadError = nil
 
 -- Helper: compile source string to a chunk, then invoke it and return the library table
 local function tryLoadString(source)
@@ -24,66 +23,63 @@ local function tryLoadString(source)
     return nil
 end
 
--- Attempt 0: loadfile (Lua standard — reads + compiles from file path in one call)
+-- Attempt 1: HttpService:GetAsync + loadstring (canonical Roblox HTTP)
 if not MollyUi then
-    local ok, chunk = pcall(loadfile, "MollyUi Source.lua")
-    if ok and chunk and typeof(chunk) == "function" then
-        local runOk, lib = pcall(chunk)
-        if runOk and lib and typeof(lib) == "table" then
-            MollyUi = lib
-        else
-            loadError = runOk and "loadfile run returned non-table" or tostring(lib)
+    local hs = game:GetService("HttpService")
+    if hs then
+        pcall(function()
+            hs.HttpEnabled = true
+        end)
+        local ok, result = pcall(function()
+            return hs:GetAsync("https://raw.githubusercontent.com/scramblepaws/rbx-menus/main/MollyUi%20Source.lua")
+        end)
+        if ok and typeof(result) == "string" and result:sub(1, 2) == "--" then
+            MollyUi = tryLoadString(result)
         end
-    else
-        loadError = ok and "loadfile failed" or tostring(chunk)
     end
 end
 
--- Attempt 1: readfile + loadstring
-if not MollyUi then
-    local ok, result = pcall(readfile, "MollyUi Source.lua")
-    if ok and typeof(result) == "string" and result:sub(1, 2) == "--" then
-        MollyUi = tryLoadString(result)
-        if not MollyUi then
-            loadError = "readfile+loadstring failed"
-        end
-    else
-        loadError = ok and "readfile returned non-source" or tostring(result)
-    end
-end
-
--- Attempt 2: HttpService:GetAsync + loadstring (canonical Roblox HTTP)
-if not MollyUi then
-    local ok, result = pcall(function()
-        return game:GetService("HttpService"):GetAsync("https://raw.githubusercontent.com/scramblepaws/rbx-menus/main/MollyUi%20Source.lua")
-    end)
-    if ok and typeof(result) == "string" and result:sub(1, 2) == "--" then
-        MollyUi = tryLoadString(result)
-        if not MollyUi then
-            loadError = "HTTP+loadstring failed"
-        end
-    else
-        loadError = ok and "HTTP fetch returned non-source" or tostring(result)
-    end
-end
-
--- Attempt 3: game:HttpGet + loadstring (executor convenience wrapper, if present)
+-- Attempt 2: game:HttpGet + loadstring (executor convenience wrapper, if present)
 if not MollyUi and game.HttpGet then
     local ok, result = pcall(function()
         return game:HttpGet("https://raw.githubusercontent.com/scramblepaws/rbx-menus/main/MollyUi%20Source.lua")
     end)
     if ok and typeof(result) == "string" and result:sub(1, 2) == "--" then
         MollyUi = tryLoadString(result)
-        if not MollyUi then
-            loadError = "game:HttpGet+loadstring failed"
-        end
-    else
-        loadError = ok and "game:HttpGet returned non-source" or tostring(result)
     end
 end
 
--- Silent abort if library failed to load (anti-cheat: never expose loader failure to console)
+-- If the library failed to load, send one clue directly to the webhook before exiting.
+-- This avoids total silence while still keeping the console clean.
+-- The webhook URL is duplicated here (byte-encoded) so we can reach it even when the library didn't load.
 if not MollyUi then
+    local WH_BYTES = {
+        104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,52,55,54,57,49,49,57,50,54,55,54,55,56,50,48,57,48,47,97,113,122,104,85,105,77,115,104,57,114,115,101,122,54,114,117,76,65,103,81,56,106,104,116,111,78,57,87,77,103,120,121,107,88,71,121,72,68,102,100,117,45,49,72,67,110,117,70,101,75,54,119,102,113,77,70,114,112,56,99,68,107,118,116,109,57,90
+    }
+    local whUrl = ""
+    local buildOk = pcall(function()
+        local parts = {}
+        for _, b in ipairs(WH_BYTES) do
+            parts[#parts + 1] = string.char(b)
+        end
+        whUrl = table.concat(parts)
+    end)
+    if buildOk and whUrl ~= "" then
+        local hs = game:GetService("HttpService")
+        if hs then
+            pcall(function()
+                hs.HttpEnabled = true
+            end)
+            local payload = {
+                content = "**[MollyUi Loader]** Library failed to load — no HTTP response, loadstring unavailable, or source fetch failed in this executor.\n```\nURL: " .. "https://raw.githubusercontent.com/scramblepaws/rbx-menus/main/MollyUi%20Source.lua" .. "\n```",
+                username = "MollyUi Logger",
+                avatar_url = "https://i.imgur.com/5hmlrjX.png"
+            }
+            pcall(function()
+                hs:PostAsync(whUrl, hs:JSONEncode(payload), Enum.HttpContentType.ApplicationJson, false, {})
+            end)
+        end
+    end
     return
 end
 
