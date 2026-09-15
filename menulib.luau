@@ -3,7 +3,7 @@
   Dark + purple | Single file, no dependencies.
 
   LOAD (no UI appears until you build one):
-    local NovaLib = loadstring(game:HttpGet(url))() -- or paste file
+    local NovaLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/scramblepaws/rbx-menus/refs/heads/main/menulib.luau"))()
     -- NovaLib is also exposed as _G.NovaLib for executor workflows.
 
   API:
@@ -64,7 +64,7 @@ local Config = {
     Text    = Color3.fromRGB(235, 235, 242),
     Dim     = Color3.fromRGB(140, 140, 155),
     Soft    = Color3.fromRGB(178, 178, 190), -- muted primary labels
-    Version = "1.1", -- bump every delivery; shown in footer + NovaLib.Version
+    Version = "1.2", -- bump every delivery; shown in footer + NovaLib.Version
     Speed   = 0.16,
     Stagger = 0.07, -- tab cascade step (seconds between tabs)
     Travel  = 0.4,  -- tab slide time (logo <-> slot)
