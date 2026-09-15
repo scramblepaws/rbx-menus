@@ -64,7 +64,7 @@ local Config = {
     Text    = Color3.fromRGB(235, 235, 242),
     Dim     = Color3.fromRGB(140, 140, 155),
     Soft    = Color3.fromRGB(178, 178, 190), -- muted primary labels
-    Version = "1.2", -- bump every delivery; shown in footer + NovaLib.Version
+    Version = "1.3", -- bump every delivery; shown in footer + NovaLib.Version
     Speed   = 0.16,
     Stagger = 0.07, -- tab cascade step (seconds between tabs)
     Travel  = 0.4,  -- tab slide time (logo <-> slot)
@@ -632,6 +632,29 @@ function NovaLib:Window(opts)
     Corner(Main, 0)
     Stroke(Main, Config.Stroke, 0.1, 1)
 
+    --// Drawn X cursor (no asset needed): two bars, white with accent edge.
+    -- Shown while the menu is open so FPS-locked games get a real pointer.
+    local Cursor = Create("Frame", {
+        Name = "Cursor",
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Size = UDim2.fromOffset(18, 18),
+        BackgroundTransparency = 1,
+        Visible = false,
+        ZIndex = 500,
+    }, Gui)
+    for _, rot in ipairs({ 45, -45 }) do
+        local bar = Create("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.new(1, 0, 0, 2),
+            BackgroundColor3 = Color3.new(1, 1, 1),
+            BorderSizePixel = 0,
+            Rotation = rot,
+            ZIndex = 500,
+        }, Cursor)
+        Stroke(bar, Config.Accent, 0, 1)
+    end
+
     --// Header (full-bleed, bottom border)
     local Header = Create("Frame", {
         Size = UDim2.new(1, 0, 0, 42),
@@ -1027,15 +1050,42 @@ function NovaLib:Window(opts)
 
     --// Open / close + keybind
     local uiOpen = true
+    local savedBehavior, savedIcon = nil, nil
+    local function touchOnly()
+        return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+    end
+    local function captureMouse()
+        -- remember the game state once, then hold Default + custom cursor
+        if savedBehavior == nil then
+            pcall(function() savedBehavior = UserInputService.MouseBehavior end)
+        end
+        if savedIcon == nil then
+            pcall(function() savedIcon = UserInputService.MouseIconEnabled end)
+        end
+        pcall(function() UserInputService.MouseBehavior = Enum.MouseBehavior.Default end)
+        pcall(function() UserInputService.MouseIconEnabled = false end)
+        Cursor.Visible = not touchOnly()
+    end
+    local function releaseMouse()
+        pcall(function()
+            if savedBehavior ~= nil then UserInputService.MouseBehavior = savedBehavior end
+        end)
+        pcall(function()
+            UserInputService.MouseIconEnabled = (savedIcon ~= false)
+        end)
+        Cursor.Visible = false
+    end
     function NovaLib:ToggleUI()
         uiOpen = not uiOpen
         if uiOpen then
             Main.Visible = true
+            captureMouse()
             Tween(Main, { GroupTransparency = 0 }, 0.22)
             PlayTabEntrance()
         else
             NovaLib._capturing = false
             pcall(function() Gui.BindPopup:Destroy() end)
+            releaseMouse()
             PlayTabExit()
             Tween(Main, { GroupTransparency = 1 }, 0.22)
             -- hide only after the exit cascade has landed (abort if reopened)
@@ -1062,8 +1112,27 @@ function NovaLib:Window(opts)
         if not gpe and not NovaLib._capturing and input.KeyCode == toggleKey then NovaLib:ToggleUI() end
     end))
 
-    -- fade the shell in, then entrance for tabs created
-    -- right after Window() returns (e.g. the demo)
+    -- FPS games re-lock the mouse constantly: hold our capture + cursor
+    -- on the shared ticker while the menu is open.
+    onTick(function()
+        if not uiOpen or touchOnly() then return end
+        pcall(function()
+            if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default then
+                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+            end
+            if UserInputService.MouseIconEnabled then
+                UserInputService.MouseIconEnabled = false
+            end
+            local m = UserInputService:GetMouseLocation()
+            local okIn, inset = pcall(function() return game:GetService("GuiService"):GetGuiInset() end)
+            if okIn and inset then m = m - inset end
+            Cursor.Position = UDim2.new(0, m.X, 0, m.Y)
+        end)
+    end)
+
+    -- boot open: capture immediately, then fade + entrance for tabs
+    -- created right after Window() returns (e.g. the demo)
+    captureMouse()
     Tween(Main, { GroupTransparency = 0 }, 0.25)
     task.delay(0.3, function()
         if uiOpen and #Window._tabs > 0 then PlayTabEntrance() end
